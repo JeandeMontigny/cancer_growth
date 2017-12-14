@@ -37,14 +37,17 @@ namespace bdm {
 
   
 // 1. Define growth behaviour
-  struct GrowthModule {
+  struct GrowthModule : public BaseBiologyModule {
+    
+    GrowthModule() : BaseBiologyModule(gAllBmEvents) {}
+    
     template <typename T>
     void Run(T* cell) {
 //cell grow until it reach a diam of 8
       if (cell->GetDiameter() < 8) {
-        cell->ChangeVolume(1000);
+        cell->ChangeVolume(100); //200
 
-        array<double, 3> cell_movements{getRandom_m1_1()*4, getRandom_m1_1()*4, getRandom_m1_1()*4};
+        array<double, 3> cell_movements{getRandom_m1_1()*2, getRandom_m1_1()*2, getRandom_m1_1()*2};
         cell->UpdateMassLocation(cell_movements);
         cell->SetPosition(cell->GetMassLocation());
         //Reset biological movement to 0.
@@ -56,7 +59,7 @@ namespace bdm {
         double aNewRandomDouble=getRandom();
 //        cout << "chance of: " << aNewRandomDouble  << endl;
       
-        if (aNewRandomDouble <= 0.55 && cell->GetCanDivide()==true ){ //0.55
+        if (aNewRandomDouble <= 1 && cell->GetCanDivide()==true ) { //0.55
           Divide(*cell);
 //          cell->SetCanDivide(false);
           cout << "\tcell divided" << endl;
@@ -65,13 +68,13 @@ namespace bdm {
         else {
           if (cell->GetCanDivide()==true) {
             cell->SetCanDivide(false);
-            cout << "cell can't divide anymore" << endl;
+//            cout << "cell can't divide anymore" << endl;
           }
         }
       }
     }
     
-    bool IsCopied(BmEvent event) const { return true; }
+//    bool IsCopied(BmEvent event) const { return true; }
     ClassDefNV(GrowthModule, 1);
   };
 
@@ -115,12 +118,14 @@ namespace bdm {
     size_t nb_of_cells=10000;
     size_t nb_of_cancerous_cells=10;
       
-    Param::live_visualization_ = true;
+    Param::live_visualization_ = false;
+    Param::export_visualization_ = true;
+    Param::visualization_export_interval_ = 10;
+    Param::visualize_sim_objects_["MyCell"] = std::set<std::string>{"diameter_"};
    
     // Create an artificial bounds for the simulation space
     Param::bound_space_ = true;
     Param::min_bound_ = 0;
-
     Param::max_bound_ = 600;//-20 //120 //520
     Param::run_mechanical_interactions_ = true;
     gTRandom.SetSeed(5807);
@@ -147,7 +152,7 @@ namespace bdm {
     cout << "cancerous cells created" << endl;
 
     Scheduler<> scheduler;
-    int max_step=2000;
+    int max_step=3000;
     
     for (int i=0; i<max_step; i++) {
       if (i%10==0) {
