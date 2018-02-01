@@ -115,9 +115,10 @@ namespace bdm {
       }
 		
       // if necrotic tissue: don't do anything (proba to die?)
-//		else {			
-//		}
-	  
+//      else if (gTRandom.Uniform(0, 1) <=0.00001) { // proba to die at every time step
+//        Delete(*cell); // Delete() method isn't implemented in this version
+//      }
+      
     } // end of Run()
     
 //    bool IsCopied(BmEvent event) const { return true; }
@@ -161,7 +162,7 @@ namespace bdm {
   template <typename TResourceManager = ResourceManager<>>
     inline int Simulate(int argc, const char** argv) {
 
-    size_t nb_of_cells=1000000; // 10000 // 1000000
+    size_t nb_of_cells=100; // 10000 // 1000000
     size_t nb_of_cancerous_cells=10; //10
       
     Param::live_visualization_ = false;
@@ -172,7 +173,7 @@ namespace bdm {
     // Create an artificial bounds for the simulation space
     Param::bound_space_ = true;
     Param::min_bound_ = 0;
-    Param::max_bound_ = 1000;//-20 //120 //520 // 600
+    Param::max_bound_ = 100;//1000
     Param::run_mechanical_interactions_ = true;
     gTRandom.SetSeed(2448); // 5807
 
@@ -202,7 +203,7 @@ namespace bdm {
     cout << "cancerous cells created" << endl;
 
     Scheduler<> scheduler;
-    int max_step=4000;
+    int max_step=2000;
     
     for (int i=0; i<max_step; i++) {
       if (i%10==0) {
