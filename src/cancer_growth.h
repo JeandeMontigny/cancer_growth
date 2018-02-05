@@ -50,8 +50,7 @@ namespace bdm {
     using AtomicTypes = VariadicTypedef<MyCell>; // use my custom Cell
   };
   
-  template <typename Function, typename TResourceManager = ResourceManager<>>
-  
+  template <typename Function, typename TResourceManager = ResourceManager<>>  
 // my cell creator
     static void CellCreator(double min, double max, int num_cells, Function cell_builder) {
     auto rm = TResourceManager::Get();
@@ -91,7 +90,7 @@ namespace bdm {
     // Create an artificial bounds for the simulation space
     Param::bound_space_ = true;
     Param::min_bound_ = 0;
-    Param::max_bound_ = 100;//1000
+    Param::max_bound_ = 1000;//1000
     Param::run_mechanical_interactions_ = true;
     gTRandom.SetSeed(2448); // 5807
 
@@ -100,8 +99,8 @@ namespace bdm {
       MyCell cell(position);
       cell.SetDiameter(9);
       cell.SetCellColour(0);
-      cell.AddBiologyModule(GrowthModule());
-      cell.SetCanDivide(false);
+//      cell.AddBiologyModule(GrowthModule());
+//      cell.SetCanDivide(false);
       return cell;
     };
     CellCreator(Param::min_bound_, Param::max_bound_, nb_of_cells, Construct_regular);
@@ -121,21 +120,50 @@ namespace bdm {
     cout << "cancerous cells created" << endl;
 
     Scheduler<> scheduler;
-    int max_step=2000;
+    int max_step=1000;
     
     for (int i=0; i<max_step; i++) {
       if (i%10==0) {
         cout << "step " << i << " out of " << max_step << endl;
       }      
-/*for (size_t i = 0; i < cells->size(); i++) {
-  auto&& cell = (*cells)[i];
-  }*/
       scheduler.Simulate(1);
     }
 
-    int cancerousCellNb=0;
     auto rm = TResourceManager::Get();
     auto my_cells=rm->template Get<MyCell>();
+    for (size_t i = 0; i < my_cells->size(); i++) {
+      auto&& cell = (*my_cells)[i];
+      if (cell.GetCellColour()==2) {
+        cell.SetOxygenLevel(0.5);
+      }
+    }
+    
+    for (int i=0; i<max_step; i++) {
+      if (i%10==0) {
+        cout << "step " << i << " out of " << max_step << endl;
+      }      
+      scheduler.Simulate(1);
+    }
+
+    rm = TResourceManager::Get();
+    my_cells=rm->template Get<MyCell>();
+    for (size_t i = 0; i < my_cells->size(); i++) {
+      auto&& cell = (*my_cells)[i];
+      if (cell.GetCellColour()==2) {
+        cell.SetOxygenLevel(0.1);
+      }
+    }
+    
+    for (int i=0; i<max_step; i++) {
+      if (i%10==0) {
+        cout << "step " << i << " out of " << max_step << endl;
+      }      
+      scheduler.Simulate(1);
+    }
+    
+    int cancerousCellNb=0;
+    rm = TResourceManager::Get();
+    my_cells=rm->template Get<MyCell>();
     for (size_t i = 0; i < my_cells->size(); i++) {
       auto&& cell = (*my_cells)[i];
       if (cell.GetCellColour()==2) {
