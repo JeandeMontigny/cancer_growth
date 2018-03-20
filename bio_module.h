@@ -10,10 +10,10 @@ namespace bdm {
 
 
     
-    GrowthModule() : BaseBiologyModule(gAllBmEvents) {}
+    GrowthModule () : BaseBiologyModule(gAllBmEvents) {}
     
     template <typename T>
-    void Run(T* cell) {
+    void Run (T* cell) {
       const double currentOxygenLevel = cell->GetOxygenLevel();
       int growthSpeed;
       array<double, 3> cell_movements;
@@ -96,7 +96,7 @@ namespace bdm {
 
 
     
-    ClassDefNV(GrowthModule, 1);
+    ClassDefNV (GrowthModule, 1);
 
 
     

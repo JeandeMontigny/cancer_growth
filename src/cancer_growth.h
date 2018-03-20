@@ -78,8 +78,24 @@ namespace bdm {
 
 
   inline
-  double get3DDistSq (array<double, 3> cell1, array<double, 3> cell2) {
-    return pow((cell1[0]-cell2[0]),2)+pow((cell1[1]-cell2[1]),2)+pow((cell1[2]-cell2[2]), 2);
+  double pow2 (double a) { return a*a; }
+
+
+
+  inline
+  double get3DDistSq (std::array<double, 3> cell1, std::array<double, 3> cell2) {
+    return pow2((cell1[0]-cell2[0]))
+          +pow2((cell1[1]-cell2[1]))
+          +pow2((cell1[2]-cell2[2]));
+  }
+
+
+
+  // 3. Core initialisation routine
+  template <typename TResourceManager = ResourceManager<>>
+  inline
+  void Initialise () {
+
   }
 
 
@@ -87,7 +103,7 @@ namespace bdm {
   // 3. Core simulation routine
   template <typename TResourceManager = ResourceManager<>>
   inline
-  int Simulate (int argc, const char** argv) {
+  void Simulate () {
     const unsigned int n_host_cells = 100;
     const unsigned int n_cancer_cells = 10;
 
@@ -103,7 +119,7 @@ namespace bdm {
 
     auto Construct_Host_Cells =  [](const std::array<double, 3>& position) {
       MyCell cell(position);
-      cell.SetDiameter(5.0);
+      cell.SetDiameter(2.0);
       cell.SetCellColour(0);
       // cell.AddBiologyModule(GrowthModule());
       cell.SetCanDivide(false);
@@ -161,6 +177,7 @@ namespace bdm {
       //
     }
 
+    /*
     // auto my_cells=rm->template Get<MyCell>();
     // for (size_t i = 0; i < my_cells->size(); i++) {
     //   auto&& cell = (*my_cells)[i];
@@ -203,8 +220,7 @@ namespace bdm {
     // }
     // cout << "nb of cancerous cells in the modelling: " << cancerousCellNb << endl;
     // cout << "done" << endl;
-
-    return 0;
+    */
   }
 
 
