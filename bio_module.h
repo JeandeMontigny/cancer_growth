@@ -3,39 +3,41 @@
 
 namespace bdm {
 
-// 1. Define growth behaviour
+
+
+  // 1. Define growth behaviour
   struct GrowthModule : public BaseBiologyModule {
+
+
     
-  GrowthModule() : BaseBiologyModule(gAllBmEvents) {}
+    GrowthModule() : BaseBiologyModule(gAllBmEvents) {}
     
     template <typename T>
-      void Run(T* cell) {
-
+    void Run(T* cell) {
+      const double currentOxygenLevel = cell->GetOxygenLevel();
       int growthSpeed;
       array<double, 3> cell_movements;
       double divideProba;
-      double currentOxygenLevel = cell->GetOxygenLevel();
-      // if normoxy: high division rate but low migration
+      // normoxia: high division rate but low migration
       if (currentOxygenLevel > 0.7) {
-        cell->SetHypoDiv(true);
         growthSpeed = 100;
-        cell_movements = {gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1)}; // create an array of 3 ramdom numbers between -1 and 1
-        // cell_movements = {gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4)}; // create an array of 3 ramdom numbers between -4 and 4
+        cell_movements = {gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1)};
         divideProba = 0.9;
+        cell->SetHypoDiv(true);
       }
-      // if hypoxy: low division rate but high migration
+      // hypoxia: low division rate but high migration
       else if (currentOxygenLevel > 0.3) {
         growthSpeed = 40;
-        //TODO: not a random migration. depending on oxygen gradient. Can get oxygen gradien from feb3
-        cell_movements = {gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4)}; // create an array of 3 ramdom numbers between -4 and 4
+        cell_movements = {gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4)};
         divideProba = 0.4;
+        cell->SetHypoDiv(false);
       }
-      // necrose
+      // necrosis: no division and no migration, just die!
       else {
         return;
-        growthSpeed=0;
-        cell_movements={0, 0, 0};
-        divideProba=0;
+        growthSpeed = 0;
+        cell_movements = {0.0, 0.0, 0.0};
+        divideProba = 0.0;
         cell->SetHypoDiv(false);
       }
         
@@ -44,24 +46,24 @@ namespace bdm {
         cell->ChangeVolume(growthSpeed);
         cell->UpdateMassLocation(cell_movements);
         cell->SetPosition(cell->GetMassLocation());
-        //Reset biological movement to 0.
         cell->SetTractorForce({0, 0, 0});
       }
       else if (cell->GetDiameter() >= 8.0) {
         cell->ChangeVolume(0.0);
         cell->UpdateMassLocation(cell_movements);
         cell->SetPosition(cell->GetMassLocation());
-        //Reset biological movement to 0.
         cell->SetTractorForce({0, 0, 0});
       }
 
 
       if (cell->GetCanDivide() && cell->GetDiameter() > 7.0) {
-        double aNewRandomDouble=gTRandom.Uniform(0.0, 1.0);
-        if (aNewRandomDouble <= divideProba) { //0.55 //0.65
+        double aNewRandomDouble = gTRandom.Uniform(0.0, 1.0);
+        if (aNewRandomDouble <= divideProba)
+        {
           auto&& daughter = Divide(*cell);
           daughter.SetCellColour(cell->GetCellColour()); // daughter takes the cell_colour_ value of her mother
           daughter.SetCanDivide(true); // daughter will be able to divide
+          daughter.SetHypoDiv(cell->GetHypoDiv()); // daughter will be able to divide in hypoxy
           daughter.SetOxygenLevel(cell->GetOxygenLevel()); // daughter takes the oxygen_level_ value of her mother
         }
       }
@@ -90,11 +92,13 @@ namespace bdm {
         }
       }
       */
-      
-    } // end of Run()
+    }
+
+
     
-//    bool IsCopied(BmEvent event) const { return true; }
     ClassDefNV(GrowthModule, 1);
+
+
     
   }; // end GrowthModule
 
