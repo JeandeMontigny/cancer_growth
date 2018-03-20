@@ -3,6 +3,7 @@
 
 #include "biodynamo.h"
 #include "../bio_module.h"
+#include "../bdm_feb3_interface.h"
 
 namespace bdm {
 
