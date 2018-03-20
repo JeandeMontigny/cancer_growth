@@ -5,12 +5,9 @@ namespace bdm {
 
 
 
-  // 1. Define growth behaviour
-  struct GrowthModule : public BaseBiologyModule {
-
-
-    
-    GrowthModule () : BaseBiologyModule(gAllBmEvents) {}
+  struct HostCellBiologyModule : public BaseBiologyModule {
+  public:
+    HostCellBiologyModule () : BaseBiologyModule(gAllBmEvents) {}
     
     template <typename T>
     void Run (T* cell) {
@@ -18,6 +15,52 @@ namespace bdm {
       int growthSpeed;
       array<double, 3> cell_movements;
       double divideProba;
+
+      // normoxia: high division rate but low migration
+      if (currentOxygenLevel > 0.7) {
+        growthSpeed = 0;
+        cell_movements = {gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1)};
+        divideProba = 0.9;
+        cell->SetHypoDiv(true);
+      }
+      // hypoxia: low division rate but high migration
+      else if (currentOxygenLevel > 0.3) {
+        growthSpeed = 0;
+        cell_movements = {gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4)};
+        divideProba = 0.4;
+        cell->SetHypoDiv(false);
+      }
+      // necrosis: no division and no migration, just die!
+      else {
+        return;
+        growthSpeed = 0;
+        cell_movements = {0.0, 0.0, 0.0};
+        divideProba = 0.0;
+        cell->SetHypoDiv(false);
+      }
+        
+      cell->ChangeVolume(0.0);
+      cell->UpdateMassLocation(cell_movements);
+      cell->SetPosition(cell->GetMassLocation());
+      cell->SetTractorForce({0, 0, 0});
+    }
+    
+    ClassDefNV (HostCellBiologyModule, 1);
+  }; // end: HostCellBiologyModule
+
+
+
+  struct CancerCellBiologyModule : public BaseBiologyModule {
+  public:
+    CancerCellBiologyModule () : BaseBiologyModule(gAllBmEvents) {}
+    
+    template <typename T>
+    void Run (T* cell) {
+      const double currentOxygenLevel = cell->GetOxygenLevel();
+      int growthSpeed;
+      array<double, 3> cell_movements;
+      double divideProba;
+
       // normoxia: high division rate but low migration
       if (currentOxygenLevel > 0.7) {
         growthSpeed = 100;
@@ -41,7 +84,7 @@ namespace bdm {
         cell->SetHypoDiv(false);
       }
         
-      //cell grow until it reach a diam of ...
+      // cell grows until it reaches a diameter of ...
       if (cell->GetDiameter() < 8.0) {
         cell->ChangeVolume(growthSpeed);
         cell->UpdateMassLocation(cell_movements);
@@ -93,14 +136,11 @@ namespace bdm {
       }
       */
     }
-
-
     
-    ClassDefNV (GrowthModule, 1);
+    ClassDefNV (CancerCellBiologyModule, 1);
+  }; // end: CancerCellBiologyModule
 
 
-    
-  }; // end GrowthModule
 
 } // end namespace bdm
 
