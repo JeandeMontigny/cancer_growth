@@ -95,15 +95,6 @@ namespace bdm {
   template <typename TResourceManager = ResourceManager<>>
   inline
   void Initialise () {
-
-  }
-
-
-
-  // 3. Core simulation routine
-  template <typename TResourceManager = ResourceManager<>>
-  inline
-  void Simulate () {
     const unsigned int n_host_cells = 100;
     const unsigned int n_cancer_cells = 10;
 
@@ -130,7 +121,6 @@ namespace bdm {
 
     // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
     CellCreator(0.01, 99.99, n_host_cells, Construct_Host_Cells);
-    cout << "regular cells created" << endl;
 
     auto Construct_Cancer_Cells =  [](const std::array<double, 3>& position) {
       MyCell cell(position);
@@ -145,7 +135,17 @@ namespace bdm {
 
     // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
     CellCreator(45.00, 55.00, n_cancer_cells, Construct_Cancer_Cells);
-    cout << "cancerous cells created" << endl;
+
+    cout << "regular cells created = " << n_host_cells << endl;
+    cout << "cancerous cells created = " << n_cancer_cells << endl;
+  }
+
+
+
+  // 4. Core simulation routine
+  template <typename TResourceManager = ResourceManager<>>
+  inline
+  void Simulate () {
 
     Scheduler<> scheduler;
     const int max_step = 1000;
