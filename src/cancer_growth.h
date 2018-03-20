@@ -95,10 +95,8 @@ namespace bdm {
   // 3. Core initialisation routine
   template <typename TResourceManager = ResourceManager<>>
   inline
-  void Initialise () {
-    const unsigned int n_host_cells = 100;
-    const unsigned int n_cancer_cells = 10;
-
+  void Initialise (BDM_Domain& rve) {
+    // set-up these simulation parameters
     Param::live_visualization_ = false;
     Param::export_visualization_ = true;
     Param::visualization_export_interval_ = 20;
@@ -115,13 +113,12 @@ namespace bdm {
       cell.SetCellColour(0);
       // cell.AddBiologyModule(HostCellBiologyModule());
       cell.SetCanDivide(false);
-      cell.SetOxygenLevel(1.0);
       // cell.SetHypoDiv(true);
       return cell;
     };
 
     // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
-    CellCreator(0.01, 99.99, n_host_cells, Construct_Host_Cells);
+    CellCreator(0.01, 99.99, rve.cells_population[0], Construct_Host_Cells);
 
     auto Construct_Cancer_Cells =  [](const std::array<double, 3>& position) {
       MyCell cell(position);
@@ -129,16 +126,31 @@ namespace bdm {
       cell.SetCellColour(1);
       cell.AddBiologyModule(CancerCellBiologyModule());
       cell.SetCanDivide(true);
-      cell.SetOxygenLevel(1.0);
       cell.SetHypoDiv(true);
       return cell;
     };
 
     // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
-    CellCreator(45.00, 55.00, n_cancer_cells, Construct_Cancer_Cells);
+    CellCreator(45.00, 55.00, rve.cells_population[1], Construct_Cancer_Cells);
 
-    cout << "regular cells created = " << n_host_cells << endl;
-    cout << "cancerous cells created = " << n_cancer_cells << endl;
+    cout << "regular cells created = " << rve.cells_population[0] << endl;
+    cout << "cancerous cells created = " << rve.cells_population[1] << endl;
+
+    auto rm = TResourceManager::Get();
+    auto all_cells = rm->template Get<MyCell>();
+    for (unsigned int l=0; l<rve.n_cell_types(); l++) {
+      rve.cells_mass[l] = 0.0;
+      rve.cells_population[l] = 0;
+    }
+    for (unsigned int i=0; i<all_cells->size(); i++) {
+      auto&& cell = (*all_cells)[i];
+      const unsigned int cell_type = cell.GetCellColour();
+      //
+      cell.SetOxygenLevel(rve.biochemical_level[0]);
+      //
+      rve.cells_mass[cell_type] += cell.GetMass();
+      rve.cells_population[cell_type] += 1;
+    }
   }
 
 
@@ -146,7 +158,7 @@ namespace bdm {
   // 4. Core simulation routine
   template <typename TResourceManager = ResourceManager<>>
   inline
-  void Simulate () {
+  void Simulate (BDM_Domain& rve) {
 
     Scheduler<> scheduler;
     const int max_step = 1000;
@@ -172,9 +184,28 @@ namespace bdm {
 
     // iterate for all time-steps
     for (int i=0; i<=max_step; i++) {
-      if (0==i%10) cout << "step " << i << " out of " << max_step << endl;
       //
       scheduler.Simulate(1);
+      //
+      auto rm = TResourceManager::Get();
+      auto all_cells = rm->template Get<MyCell>();
+      for (unsigned int l=0; l<rve.n_cell_types(); l++) {
+        rve.cells_mass[l] = 0.0;
+        rve.cells_population[l] = 0;
+      }
+      for (unsigned int i=0; i<all_cells->size(); i++) {
+        auto&& cell = (*all_cells)[i];
+        const unsigned int cell_type = cell.GetCellColour();
+        //
+        rve.cells_mass[cell_type] += cell.GetMass();
+        rve.cells_population[cell_type] += 1;
+      }
+      //
+      if (0==i%10) {
+        std::cout << " *** Time-step " << i << " out of " << max_step << std::flush;
+        std::cout << "; # of cells (" << rve.cells_population[0] << "," << rve.cells_population[1] << ")" << std::flush;
+        std::cout << std::endl;
+      }
       //
     }
 
