@@ -1,6 +1,7 @@
 #ifndef CANCER_GROWTH_H_
 #define CANCER_GROWTH_H_
 
+#include <fstream>
 #include "biodynamo.h"
 #include "../bio_module.h"
 #include "../bdm_feb3_interface.h"
@@ -134,6 +135,24 @@ namespace bdm {
     const int max_step = 1000;
     // auto rm = TResourceManager::Get();
     
+    // create a PVD file for Paraview to process
+    {
+      std::ofstream fpvd("cells_data.pvd");
+      fpvd.setf(std::ios_base::scientific|std::ios_base::unitbuf);
+      //
+      fpvd << "<?xml version=\"1.0\"?>" << std::endl;
+      fpvd << "<VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\">" << std::endl;
+      fpvd << "<Collection>" << std::endl;
+      for (int i=0; i<=max_step; i++) {
+        const double t = (i+0.0)/max_step;
+        if ( 0 == i || max_step == i || i%Param::visualization_export_interval_ == 0 ) {
+          fpvd << "<DataSet timestep=\"" << t << "\" group=\"\" part=\"0\" file=\"cells_data_" << i << ".pvtu\"/>" << std::endl;
+        }
+      }
+      fpvd << "</Collection>" << std::endl;
+      fpvd << "</VTKFile>" << std::endl;
+    }
+
     // iterate for all time-steps
     for (int i=0; i<=max_step; i++) {
       if (0==i%10) cout << "step " << i << " out of " << max_step << endl;
