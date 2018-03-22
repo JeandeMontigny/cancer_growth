@@ -162,7 +162,6 @@ namespace bdm {
 
     Scheduler<> scheduler;
     const int max_step = 1000;
-    // auto rm = TResourceManager::Get();
     
     // create a PVD file for Paraview to process
     {
@@ -208,51 +207,6 @@ namespace bdm {
       }
       //
     }
-
-    /*
-    // auto my_cells=rm->template Get<MyCell>();
-    // for (size_t i = 0; i < my_cells->size(); i++) {
-    //   auto&& cell = (*my_cells)[i];
-    //   if (cell.GetCellColour()==2) {
-    //     cell.SetOxygenLevel(0.5);
-    //   }
-    // }
-    
-    // for (int i=0; i<max_step; i++) {
-    //   if (i%10==0) {
-    //     cout << "step " << i << " out of " << max_step << endl;
-    //   }      
-    //   scheduler.Simulate(1);
-    // }
-
-    // rm = TResourceManager::Get();
-    // my_cells=rm->template Get<MyCell>();
-    // for (size_t i = 0; i < my_cells->size(); i++) {
-    //   auto&& cell = (*my_cells)[i];
-    //   if (cell.GetCellColour()==2) {
-    //     cell.SetOxygenLevel(0.1);
-    //   }
-    // }
-    
-    // for (int i=0; i<max_step; i++) {
-    //   if (i%10==0) {
-    //     cout << "step " << i << " out of " << max_step << endl;
-    //   }      
-    //   scheduler.Simulate(1);
-    // }
-    
-    // int cancerousCellNb=0;
-    // rm = TResourceManager::Get();
-    // my_cells=rm->template Get<MyCell>();
-    // for (size_t i = 0; i < my_cells->size(); i++) {
-    //   auto&& cell = (*my_cells)[i];
-    //   if (cell.GetCellColour()==2) {
-    //     cancerousCellNb++;
-    //   }
-    // }
-    // cout << "nb of cancerous cells in the modelling: " << cancerousCellNb << endl;
-    // cout << "done" << endl;
-    */
   }
 
 
