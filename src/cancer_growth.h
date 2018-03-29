@@ -48,7 +48,7 @@ namespace bdm {
   template <typename Backend>
   struct CompileTimeParam : public DefaultCompileTimeParam<Backend> {
     // using BiologyModules = Variant<HostCellBiologyModule>;
-    using BiologyModules = Variant<CancerCellBiologyModule>;
+    using BiologyModules = Variant<CancerCellBiologyModule, HostCellBiologyModule>;
     using AtomicTypes = VariadicTypedef<MyCell>;
   };
   
@@ -111,7 +111,7 @@ namespace bdm {
       MyCell cell(position);
       cell.SetDiameter(2.0);
       cell.SetCellColour(0);
-      // cell.AddBiologyModule(HostCellBiologyModule());
+      cell.AddBiologyModule(HostCellBiologyModule());
       cell.SetCanDivide(false);
       // cell.SetHypoDiv(true);
       return cell;
