@@ -113,10 +113,9 @@ namespace bdm {
       cell.SetCellColour(0);
       cell.AddBiologyModule(HostCellBiologyModule());
       cell.SetCanDivide(false);
-      // cell.SetHypoDiv(true);
+      cell.SetHypoDiv(true);
       return cell;
     };
-
     // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
     CellCreator(0.01, 99.99, rve.cells_population[0], Construct_Host_Cells);
 
@@ -129,7 +128,6 @@ namespace bdm {
       cell.SetHypoDiv(true);
       return cell;
     };
-
     // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
     CellCreator(45.00, 55.00, rve.cells_population[1], Construct_Cancer_Cells);
 
