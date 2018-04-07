@@ -1,7 +1,7 @@
 #include "./cancer_growth.h"
 
 int main (int argc, char* argv[]) {
-    const int n_cell_types =2, n_biochem =1, n_mstruct =1;
+    const int n_cell_types =2, n_biochem =1, n_mstruct =1, n_steps = 1000;
     BDM_Domain rve(n_cell_types, n_biochem, n_mstruct);
     // set some initial values for these data
     rve.cells_population[0] = 100;

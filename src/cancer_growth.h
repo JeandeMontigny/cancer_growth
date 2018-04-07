@@ -169,10 +169,10 @@ namespace bdm {
       fpvd << "<?xml version=\"1.0\"?>" << std::endl;
       fpvd << "<VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\">" << std::endl;
       fpvd << "<Collection>" << std::endl;
-      for (int i=0; i<=max_step; i++) {
-        const double t = (i+0.0)/max_step;
-        if ( 0 == i || max_step == i || i%Param::visualization_export_interval_ == 0 ) {
-          fpvd << "<DataSet timestep=\"" << t << "\" group=\"\" part=\"0\" file=\"cells_data_" << i << ".pvtu\"/>" << std::endl;
+      for (int istep=0; istep<=max_step; istep++) {
+        const double time = (istep+0.0)/max_step;
+        if ( 0 == istep || max_step == istep || istep%Param::visualization_export_interval_ == 0 ) {
+          fpvd << "<DataSet timestep=\"" << time << "\" group=\"\" part=\"0\" file=\"cells_data_" << istep << ".pvtu\"/>" << std::endl;
         }
       }
       fpvd << "</Collection>" << std::endl;
@@ -180,7 +180,7 @@ namespace bdm {
     }
 
     // iterate for all time-steps
-    for (int i=0; i<=max_step; i++) {
+    for (int istep=0; istep<=max_step; istep++) {
       //
       scheduler.Simulate(1);
       //
@@ -190,16 +190,16 @@ namespace bdm {
         rve.cells_mass[l] = 0.0;
         rve.cells_population[l] = 0;
       }
-      for (unsigned int i=0; i<all_cells->size(); i++) {
-        auto&& cell = (*all_cells)[i];
+      for (unsigned int n=0; n<all_cells->size(); n++) {
+        auto&& cell = (*all_cells)[n];
         const unsigned int cell_type = cell.GetCellColour();
         //
         rve.cells_mass[cell_type] += cell.GetMass();
         rve.cells_population[cell_type] += 1;
       }
       //
-      if (0==i%10) {
-        std::cout << " *** Time-step " << i << " out of " << max_step << std::flush;
+      if (0==istep%10) {
+        std::cout << " *** Time-step " << istep << " out of " << max_step << std::flush;
         std::cout << "; # of cells (" << rve.cells_population[0] << "," << rve.cells_population[1] << ")" << std::flush;
         std::cout << std::endl;
       }
