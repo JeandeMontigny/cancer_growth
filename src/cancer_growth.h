@@ -57,7 +57,7 @@ namespace bdm {
   // my cell creator
   template <typename Function, typename TResourceManager = ResourceManager<>>  
   static
-  void CellCreator (double min, double max, unsigned int n_cells, Function cell_builder) {
+  void HostCellCreator (double min, double max, unsigned int n_cells, Function cell_builder) {
     auto rm = TResourceManager::Get();
 
     // Determine simulation object type which is returned by the cell_builder
@@ -67,9 +67,35 @@ namespace bdm {
     container->reserve(n_cells);
 
     for (int i=0; i<n_cells; i++) {
-      double x = gTRandom.Uniform(min, max);
-      double y = gTRandom.Uniform(min, max);
-      double z = gTRandom.Uniform(min, max);
+      double x, y, z;
+      x = gTRandom.Uniform(min, max);
+      y = gTRandom.Uniform(min, max);
+      z = gTRandom.Uniform(min, max);
+      auto new_simulation_object = cell_builder({x, y, z});
+      container->push_back(new_simulation_object);
+    }
+    container->Commit();
+  }
+
+
+
+  // my cell creator
+  template <typename Function, typename TResourceManager = ResourceManager<>>  
+  static
+  void CancerCellCreator (double min, double max, unsigned int n_cells, Function cell_builder) {
+    auto rm = TResourceManager::Get();
+
+    // Determine simulation object type which is returned by the cell_builder
+    using FunctionReturnType = decltype(cell_builder({0, 0, 0}));
+
+    auto container = rm->template Get<FunctionReturnType>();
+    container->reserve(n_cells);
+
+    for (int i=0; i<n_cells; i++) {
+      double x, y, z;
+      x = gTRandom.Uniform(min, max);
+      y = gTRandom.Uniform(min, max);
+      z = gTRandom.Uniform(min, max);
       auto new_simulation_object = cell_builder({x, y, z});
       container->push_back(new_simulation_object);
     }
@@ -117,7 +143,7 @@ namespace bdm {
       return cell;
     };
     // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
-    CellCreator(0.01, 99.99, rve.cells_population[0], Construct_Host_Cells);
+    HostCellCreator(0.01, 99.99, rve.cells_population[0], Construct_Host_Cells);
 
     auto Construct_Cancer_Cells =  [](const std::array<double, 3>& position) {
       MyCell cell(position);
@@ -129,7 +155,7 @@ namespace bdm {
       return cell;
     };
     // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
-    CellCreator(45.00, 55.00, rve.cells_population[1], Construct_Cancer_Cells);
+    CancerCellCreator(45.00, 55.00, rve.cells_population[1], Construct_Cancer_Cells);
 
     cout << "regular cells created = " << rve.cells_population[0] << endl;
     cout << "cancerous cells created = " << rve.cells_population[1] << endl;
