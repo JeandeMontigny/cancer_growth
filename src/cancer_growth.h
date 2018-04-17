@@ -3,14 +3,11 @@
 
 #include <fstream>
 #include "biodynamo.h"
-#include "../bio_module.h"
 #include "../bdm_feb3_interface.h"
 
 namespace bdm {
 
-
-
-  // 0. Define my custom cell, which extends Cell by adding an extra data member cell_type. 
+  // 0. Define my custom cell, which extends Cell by adding an extra data member cell_type.
   BDM_SIM_OBJECT(MyCell, Cell) {
     BDM_SIM_OBJECT_HEADER(MyCellExt, 1, can_divide_, cell_colour_, oxygen_level_, hypo_division_); // create the header with our new data member
 
@@ -42,8 +39,112 @@ namespace bdm {
     vec<bool> hypo_division_;
   };
 
+    struct HostCellBiologyModule : public BaseBiologyModule {
+    public:
+      HostCellBiologyModule () : BaseBiologyModule(gAllBmEvents) {}
 
-  
+      template <typename T>
+      void Run (T* cell) {
+        const double currentOxygenLevel = cell->GetOxygenLevel();
+        int growthSpeed;
+        array<double, 3> cell_movements;
+        double divideProba;
+
+        // normoxia: high division rate but low migration
+        if (currentOxygenLevel > 0.7) {
+          growthSpeed = 0;
+          cell_movements = {gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1)};
+          divideProba = 0.9;
+          cell->SetHypoDiv(true);
+        }
+        // hypoxia: low division rate but high migration
+        else if (currentOxygenLevel > 0.3) {
+          growthSpeed = 0;
+          cell_movements = {gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4)};
+          divideProba = 0.4;
+          cell->SetHypoDiv(false);
+        }
+        // necrosis: no division and no migration, just die!
+        else {
+          return;
+          growthSpeed = 0;
+          cell_movements = {0.0, 0.0, 0.0};
+          divideProba = 0.0;
+          cell->SetHypoDiv(false);
+        }
+
+        cell->ChangeVolume(0.0);
+        cell->UpdateMassLocation(cell_movements);
+        cell->SetPosition(cell->GetMassLocation());
+        cell->SetTractorForce({0, 0, 0});
+      }
+
+      ClassDefNV (HostCellBiologyModule, 1);
+    }; // end: HostCellBiologyModule
+
+    struct CancerCellBiologyModule : public BaseBiologyModule {
+    public:
+      CancerCellBiologyModule () : BaseBiologyModule(gAllBmEvents) {}
+
+      template <typename T>
+      void Run (T* cell) {
+        const double currentOxygenLevel = cell->GetOxygenLevel();
+        int growthSpeed;
+        array<double, 3> cell_movements;
+        double divideProba;
+
+        // normoxia: high division rate but low migration
+        if (currentOxygenLevel > 0.7) {
+          growthSpeed = 100;
+          cell_movements = {gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1)};
+          divideProba = 0.9;
+          cell->SetHypoDiv(true);
+        }
+        // hypoxia: low division rate but high migration
+        else if (currentOxygenLevel > 0.3) {
+          growthSpeed = 40;
+          cell_movements = {gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4)};
+          divideProba = 0.4;
+          cell->SetHypoDiv(false);
+        }
+        // necrosis: no division and no migration, just die!
+        else {
+          return;
+          growthSpeed = 0;
+          cell_movements = {0.0, 0.0, 0.0};
+          divideProba = 0.0;
+          cell->SetHypoDiv(false);
+        }
+
+        // cell grows until it reaches a diameter of ...
+        if (cell->GetDiameter() < 8.0) {
+          cell->ChangeVolume(growthSpeed);
+          cell->UpdateMassLocation(cell_movements);
+          cell->SetPosition(cell->GetMassLocation());
+          cell->SetTractorForce({0, 0, 0});
+        }
+        else if (cell->GetDiameter() >= 8.0) {
+          cell->ChangeVolume(0.0);
+          cell->UpdateMassLocation(cell_movements);
+          cell->SetPosition(cell->GetMassLocation());
+          cell->SetTractorForce({0, 0, 0});
+        }
+
+        if (cell->GetCanDivide() && cell->GetDiameter() > 7.0) {
+          double aNewRandomDouble = gTRandom.Uniform(0.0, 1.0);
+          if (aNewRandomDouble <= divideProba) {
+            auto&& daughter = Divide(*cell);
+            daughter.SetCellColour(cell->GetCellColour()); // daughter takes the cell_colour_ value of her mother
+            daughter.SetCanDivide(true); // daughter will be able to divide
+            daughter.SetHypoDiv(cell->GetHypoDiv()); // daughter will be able to divide in hypoxy
+            daughter.SetOxygenLevel(cell->GetOxygenLevel()); // daughter takes the oxygen_level_ value of her mother
+          }
+        }
+      }// end run
+
+      ClassDefNV (CancerCellBiologyModule, 1);
+    }; // end: CancerCellBiologyModule
+
   // 2. Define the compile-time parameter
   template <typename Backend>
   struct CompileTimeParam : public DefaultCompileTimeParam<Backend> {
@@ -51,11 +152,11 @@ namespace bdm {
     using BiologyModules = Variant<CancerCellBiologyModule, HostCellBiologyModule>;
     using AtomicTypes = VariadicTypedef<MyCell>;
   };
-  
+
 
 
   // my cell creator
-  template <typename Function, typename TResourceManager = ResourceManager<>>  
+  template <typename Function, typename TResourceManager = ResourceManager<>>
   static
   void CellCreator (double min, double max, unsigned int n_cells, Function cell_builder) {
     auto rm = TResourceManager::Get();
@@ -118,6 +219,7 @@ namespace bdm {
     };
 
     // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
+    //TODO: create cells by reading outputFile
     CellCreator(0.01, 99.99, rve.cells_population[0], Construct_Host_Cells);
 
     auto Construct_Cancer_Cells =  [](const std::array<double, 3>& position) {
@@ -131,6 +233,7 @@ namespace bdm {
     };
 
     // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
+    //TODO: create cells by reading outputFile
     CellCreator(45.00, 55.00, rve.cells_population[1], Construct_Cancer_Cells);
 
     cout << "regular cells created = " << rve.cells_population[0] << endl;
@@ -151,8 +254,22 @@ namespace bdm {
       rve.cells_mass[cell_type] += cell.GetMass();
       rve.cells_population[cell_type] += 1;
     }
+  } // end Initialise
+
+
+  template <typename TResourceManager = ResourceManager<>>
+  inline
+  void ResetBDM () {
+    Param::Reset();
+    Rm()->Clear();
   }
 
+
+  template <typename TResourceManager = ResourceManager<>>
+  inline void position_exporteur() {
+    // TODO: export cell position in external file, to retrieved those informations later to be able to continue this particular simulation
+
+  }
 
 
   // 4. Core simulation routine
@@ -162,7 +279,7 @@ namespace bdm {
 
     Scheduler<> scheduler;
     const int max_step = 1000;
-    
+
     // create a PVD file for Paraview to process
     {
       std::ofstream fpvd("cells_data.pvd");
@@ -205,9 +322,27 @@ namespace bdm {
         std::cout << "; # of cells (" << rve.cells_population[0] << "," << rve.cells_population[1] << ")" << std::flush;
         std::cout << std::endl;
       }
-      //
+
+    } // end iterate for all time-steps
+
+    // export simulation in external file
+    ofstream outputFile;
+    int sumulationNb = 0; // TODO: get this simulation number / location
+    outputFile.open("simulation_" + std::to_string(simulationNb) + ".txt");
+
+    my_cells = rm->template Get<MyCell>();
+    numberOfCells = my_cells->size();
+
+    for (int i; i < numberOfCells; i++) {
+      auto thisCell = (*Cell) my_cells[i];
+      array<double, 3> thisPosition = thisCell->GetMassLocation();
+
+      outputFile << i << " " << thisPosition[0] << " " << thisPosition[1] << " " << thisPosition[2] << " " << thisCell->GetDiameter() << thisCell->GetCanDivide() << " " << thisCell->GetCanDivide() << " " << thisCell->GetHypoDiv() << "\n";
     }
-  }
+
+    outputFile.close();
+
+  } // end simulate
 
 
 
