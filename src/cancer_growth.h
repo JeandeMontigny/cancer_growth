@@ -199,7 +199,7 @@ namespace bdm {
   void Initialise (BDM_Domain& rve) {
     // set-up these simulation parameters
     Param::live_visualization_ = false;
-    Param::export_visualization_ = true;
+    Param::export_visualization_ = false;
     Param::visualization_export_interval_ = 20;
     Param::visualize_sim_objects_["MyCell"] = std::set<std::string>{"diameter_", "cell_colour_", "oxygen_level_"};
     Param::bound_space_ = true; // create artificial boundary limits for the 3D simulation space
@@ -219,9 +219,6 @@ namespace bdm {
     };
 
     // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
-    //TODO: create cells by reading outputFile
-    CellCreator(0.01, 99.99, rve.cells_population[0], Construct_Host_Cells);
-
     auto Construct_Cancer_Cells =  [](const std::array<double, 3>& position) {
       MyCell cell(position);
       cell.SetDiameter(6.0);
@@ -233,7 +230,8 @@ namespace bdm {
     };
 
     // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
-    //TODO: create cells by reading outputFile
+    //TODO: create cells by reading outputFile if external files already exist
+    CellCreator(0.01, 99.99, rve.cells_population[0], Construct_Host_Cells);
     CellCreator(45.00, 55.00, rve.cells_population[1], Construct_Cancer_Cells);
 
     cout << "regular cells created = " << rve.cells_population[0] << endl;
@@ -258,17 +256,9 @@ namespace bdm {
 
 
   template <typename TResourceManager = ResourceManager<>>
-  inline
-  void ResetBDM () {
+  inline void ResetBDM () {
     Param::Reset();
-    Rm()->Clear();
-  }
-
-
-  template <typename TResourceManager = ResourceManager<>>
-  inline void position_exporteur() {
-    // TODO: export cell position in external file, to retrieved those informations later to be able to continue this particular simulation
-
+    TResourceManager::Get()->Clear();
   }
 
 
@@ -278,7 +268,7 @@ namespace bdm {
   void Simulate (BDM_Domain& rve) {
 
     Scheduler<> scheduler;
-    const int max_step = 1000;
+    const int max_step = 250;
 
     // create a PVD file for Paraview to process
     {
@@ -299,11 +289,14 @@ namespace bdm {
     }
 
     // iterate for all time-steps
+    auto rm = TResourceManager::Get();
+
+    std::cout << " -- running simulation  " << rve.simulationNb << " --" << std::endl;
+
     for (int i=0; i<=max_step; i++) {
       //
       scheduler.Simulate(1);
       //
-      auto rm = TResourceManager::Get();
       auto all_cells = rm->template Get<MyCell>();
       for (unsigned int l=0; l<rve.n_cell_types(); l++) {
         rve.cells_mass[l] = 0.0;
@@ -325,19 +318,22 @@ namespace bdm {
 
     } // end iterate for all time-steps
 
+    // TODO: create separated folder for each simulation, labelled by the BDM_simulation number
+
     // export simulation in external file
     ofstream outputFile;
-    int sumulationNb = 0; // TODO: get this simulation number / location
-    outputFile.open("simulation_" + std::to_string(simulationNb) + ".txt");
+    outputFile.open("simulation_" + std::to_string(rve.simulationNb) + ".txt");
 
-    my_cells = rm->template Get<MyCell>();
-    numberOfCells = my_cells->size();
+    std::cout << " -- exporting simulation  " << rve.simulationNb << " --" << std::endl;
+
+    auto my_cells = rm->template Get<MyCell>();
+    int numberOfCells = my_cells->size();
 
     for (int i; i < numberOfCells; i++) {
-      auto thisCell = (*Cell) my_cells[i];
-      array<double, 3> thisPosition = thisCell->GetMassLocation();
+      auto thisCell = (*my_cells)[i];
+      array<double, 3> thisPosition = thisCell.GetMassLocation();
 
-      outputFile << i << " " << thisPosition[0] << " " << thisPosition[1] << " " << thisPosition[2] << " " << thisCell->GetDiameter() << thisCell->GetCanDivide() << " " << thisCell->GetCanDivide() << " " << thisCell->GetHypoDiv() << "\n";
+      outputFile << i << " " << thisPosition[0] << " " << thisPosition[1] << " " << thisPosition[2] << " " << thisCell.GetDiameter() << thisCell.GetCanDivide() << " " << thisCell.GetCanDivide() << " " << thisCell.GetHypoDiv() << "\n";
     }
 
     outputFile.close();

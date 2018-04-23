@@ -34,6 +34,7 @@ public:
     inline
     unsigned int n_mstruct () const { return this->_n_mstruct; }
 public:
+    int simulationNb;
     std::vector<Real> cells_mass;
     std::vector<unsigned int> cells_population;
     std::vector<Real>         biochemical_level;
