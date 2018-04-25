@@ -278,11 +278,11 @@ namespace bdm {
         cell.SetOxygenLevel(rve.biochemical_level[0]);
         cell.SetHypoDiv(lineInfo[7]);
         if (lineInfo[8] == 1) { // if cancerous cell
-          cell.SetHypoDiv(true);
+          cell.SetIsCancerous(true);
           cell.AddBiologyModule(CancerCellBiologyModule());
         }
         else {
-          cell.SetHypoDiv(false);
+          cell.SetIsCancerous(false);
           cell.AddBiologyModule(HostCellBiologyModule());
         }
 
