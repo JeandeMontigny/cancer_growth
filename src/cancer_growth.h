@@ -9,7 +9,7 @@ namespace bdm {
 
   // 0. Define my custom cell, which extends Cell by adding an extra data member cell_type.
   BDM_SIM_OBJECT(MyCell, Cell) {
-    BDM_SIM_OBJECT_HEADER(MyCellExt, 1, can_divide_, cell_colour_, oxygen_level_, hypo_division_); // create the header with our new data member
+    BDM_SIM_OBJECT_HEADER(MyCellExt, 1, can_divide_, cell_colour_, oxygen_level_, hypo_division_, is_cancerous_); // create the header with our new data member
 
   public:
     MyCellExt() {}
@@ -32,11 +32,16 @@ namespace bdm {
     bool  GetHypoDiv() { return hypo_division_[kIdx]; }
     bool* GetHypoDivPtr() { return hypo_division_.data(); }
 
+    void SetIsCancerous(bool cancerous) {is_cancerous_[kIdx] = cancerous; }
+    bool GetIsCancerous() { return is_cancerous_[kIdx]; }
+    bool* GetIsCancerousPtr() { return is_cancerous_.data(); }
+
   private:
     vec<bool> can_divide_;
     vec<int> cell_colour_;
     vec<double> oxygen_level_; // should be between 0 and 1
     vec<bool> hypo_division_;
+    vec<bool> is_cancerous_;
   };
 
     struct HostCellBiologyModule : public BaseBiologyModule {
@@ -138,6 +143,7 @@ namespace bdm {
             daughter.SetCanDivide(true); // daughter will be able to divide
             daughter.SetHypoDiv(cell->GetHypoDiv()); // daughter will be able to divide in hypoxy
             daughter.SetOxygenLevel(cell->GetOxygenLevel()); // daughter takes the oxygen_level_ value of her mother
+            daughter.SetIsCancerous(true);
           }
         }
       }// end run
@@ -197,6 +203,9 @@ namespace bdm {
   template <typename TResourceManager = ResourceManager<>>
   inline
   void Initialise (BDM_Domain& rve) {
+
+    std::cout << " -- initialization of simulation " << rve.simulationNb << " --" << std::endl;
+
     // set-up these simulation parameters
     Param::live_visualization_ = false;
     Param::export_visualization_ = false;
@@ -215,6 +224,7 @@ namespace bdm {
       cell.AddBiologyModule(HostCellBiologyModule());
       cell.SetCanDivide(false);
       // cell.SetHypoDiv(true);
+      cell.SetIsCancerous(false);
       return cell;
     };
 
@@ -226,16 +236,69 @@ namespace bdm {
       cell.AddBiologyModule(CancerCellBiologyModule());
       cell.SetCanDivide(true);
       cell.SetHypoDiv(true);
+      cell.SetIsCancerous(true);
       return cell;
     };
 
-    // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
-    //TODO: create cells by reading outputFile if external files already exist
-    CellCreator(0.01, 99.99, rve.cells_population[0], Construct_Host_Cells);
-    CellCreator(45.00, 55.00, rve.cells_population[1], Construct_Cancer_Cells);
+    std::string fileName="simulation_"+std::to_string(rve.simulationNb)+".txt";
+    // if exported external file exist
+    if (access(fileName.c_str(), F_OK) != -1) {
+      // read outputFile
+      std::ifstream file(fileName);
+      std::string line;
+      int nb_of_cells=0;
+      while (std::getline(file, line)) {
+        nb_of_cells++;
+      }
 
-    cout << "regular cells created = " << rve.cells_population[0] << endl;
-    cout << "cancerous cells created = " << rve.cells_population[1] << endl;
+      // set up resource manager and reserve cells
+      auto rm = TResourceManager::Get();
+      auto cells = rm->template Get<MyCell>();
+      cells->reserve(nb_of_cells); // -1?
+
+      array<double, 9> lineInfo;
+
+      std::ifstream fileBis(fileName);
+      while (std::getline(fileBis, line)) {
+        // retreived info from line
+        size_t pos = 0;
+        int i = 0;
+        while ((pos=line.find(" ")) != std::string::npos) {
+//          std::cout << "parsing item: " << line.substr(0, pos) << std::endl;
+          lineInfo[i] = stod(line.substr(0, pos));
+          line.erase(0, pos+1);
+          i++;
+        }
+        lineInfo[8] = stod(line);
+
+        // create cells depending on outputFile
+        MyCell cell({lineInfo[1], lineInfo[2], lineInfo[3]});
+        cell.SetDiameter(lineInfo[4]);
+        cell.SetCanDivide(lineInfo[5]);
+        cell.SetOxygenLevel(rve.biochemical_level[0]);
+        cell.SetHypoDiv(lineInfo[7]);
+        if (lineInfo[8] == 1) { // if cancerous cell
+          cell.SetHypoDiv(true);
+          cell.AddBiologyModule(CancerCellBiologyModule());
+        }
+        else {
+          cell.SetHypoDiv(false);
+          cell.AddBiologyModule(HostCellBiologyModule());
+        }
+
+        cells->push_back(cell);
+      }
+      cells->Commit();
+    }
+
+    else {
+      // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
+      CellCreator(0.01, 99.99, rve.cells_population[0], Construct_Host_Cells);
+      CellCreator(45.00, 55.00, rve.cells_population[1], Construct_Cancer_Cells);
+    }
+
+//    cout << "regular cells created = " << rve.cells_population[0] << endl;
+//    cout << "cancerous cells created = " << rve.cells_population[1] << endl;
 
     auto rm = TResourceManager::Get();
     auto all_cells = rm->template Get<MyCell>();
@@ -291,7 +354,7 @@ namespace bdm {
     // iterate for all time-steps
     auto rm = TResourceManager::Get();
 
-    std::cout << " -- running simulation  " << rve.simulationNb << " --" << std::endl;
+    std::cout << " -- running simulation " << rve.simulationNb << " --" << std::endl;
 
     for (int i=0; i<=max_step; i++) {
       //
@@ -324,7 +387,7 @@ namespace bdm {
     ofstream outputFile;
     outputFile.open("simulation_" + std::to_string(rve.simulationNb) + ".txt");
 
-    std::cout << " -- exporting simulation  " << rve.simulationNb << " --" << std::endl;
+    std::cout << " -- exporting simulation " << rve.simulationNb << " --" << std::endl;
 
     auto my_cells = rm->template Get<MyCell>();
     int numberOfCells = my_cells->size();
@@ -333,7 +396,7 @@ namespace bdm {
       auto thisCell = (*my_cells)[i];
       array<double, 3> thisPosition = thisCell.GetMassLocation();
 
-      outputFile << i << " " << thisPosition[0] << " " << thisPosition[1] << " " << thisPosition[2] << " " << thisCell.GetDiameter() << thisCell.GetCanDivide() << " " << thisCell.GetCanDivide() << " " << thisCell.GetHypoDiv() << "\n";
+      outputFile << i << " " << thisPosition[0] << " " << thisPosition[1] << " " << thisPosition[2] << " " << thisCell.GetDiameter() << thisCell.GetCanDivide() << " " << thisCell.GetOxygenLevel() << " " << thisCell.GetHypoDiv() << " " << thisCell.GetIsCancerous() << "\n";
     }
 
     outputFile.close();
