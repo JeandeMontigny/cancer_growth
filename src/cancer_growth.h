@@ -78,10 +78,10 @@ namespace bdm {
           cell->SetHypoDiv(false);
         }
 
-        cell->ChangeVolume(0.0);
-        cell->UpdateMassLocation(cell_movements);
-        cell->SetPosition(cell->GetMassLocation());
-        cell->SetTractorForce({0, 0, 0});
+//        cell->ChangeVolume(0.0);
+//        cell->UpdateMassLocation(cell_movements);
+//        cell->SetPosition(cell->GetMassLocation());
+//        cell->SetTractorForce({0, 0, 0});
       }
 
       ClassDefNV (HostCellBiologyModule, 1);
@@ -254,17 +254,16 @@ namespace bdm {
       // set up resource manager and reserve cells
       auto rm = TResourceManager::Get();
       auto cells = rm->template Get<MyCell>();
-      cells->reserve(nb_of_cells); // -1?
+      cells->reserve(nb_of_cells);
 
       array<double, 9> lineInfo;
 
       std::ifstream fileBis(fileName);
       while (std::getline(fileBis, line)) {
-        // retreived info from line
         size_t pos = 0;
         int i = 0;
+        // retreived info from line
         while ((pos=line.find(" ")) != std::string::npos) {
-//          std::cout << "parsing item: " << line.substr(0, pos) << std::endl;
           lineInfo[i] = stod(line.substr(0, pos));
           line.erase(0, pos+1);
           i++;
@@ -293,7 +292,7 @@ namespace bdm {
 
     else {
       // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
-      CellCreator(0.01, 99.99, rve.cells_population[0], Construct_Host_Cells);
+      CellCreator(10, 90, rve.cells_population[0], Construct_Host_Cells);
       CellCreator(45.00, 55.00, rve.cells_population[1], Construct_Cancer_Cells);
     }
 
