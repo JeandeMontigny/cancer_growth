@@ -204,7 +204,7 @@ namespace bdm {
   inline
   void Initialise (BDM_Domain& rve) {
 
-    std::cout << " -- initialization of simulation " << rve.simulationNb << " --" << std::endl;
+    std::cout << " -- initialization of simulation " << rve.id() << " -- " << std::endl;
 
     // set-up these simulation parameters
     Param::live_visualization_ = false;
@@ -240,7 +240,7 @@ namespace bdm {
       return cell;
     };
 
-    std::string fileName="simulation_"+std::to_string(rve.simulationNb)+".txt";
+    std::string fileName="simulation_"+std::to_string(rve.id())+".txt";
     // if exported external file exist
     if (access(fileName.c_str(), F_OK) != -1) {
       // read outputFile
@@ -330,7 +330,7 @@ namespace bdm {
   void Simulate (BDM_Domain& rve) {
 
     Scheduler<> scheduler;
-    const int max_step = 250;
+    const int max_step = 100;
 
     // create a PVD file for Paraview to process
     {
@@ -353,7 +353,7 @@ namespace bdm {
     // iterate for all time-steps
     auto rm = TResourceManager::Get();
 
-    std::cout << " -- running simulation " << rve.simulationNb << " --" << std::endl;
+    std::cout << " -- running simulation " << rve.id() << " -- " << std::endl;
 
     for (int i=0; i<=max_step; i++) {
       //
@@ -384,14 +384,14 @@ namespace bdm {
 
     // export simulation in external file
     ofstream outputFile;
-    outputFile.open("simulation_" + std::to_string(rve.simulationNb) + ".txt");
+    outputFile.open("simulation_" + std::to_string(rve.id()) + ".txt");
 
-    std::cout << " -- exporting simulation " << rve.simulationNb << " --" << std::endl;
+    std::cout << " -- exporting simulation " << rve.id() << " -- " << std::endl;
 
     auto my_cells = rm->template Get<MyCell>();
     int numberOfCells = my_cells->size();
 
-    for (int i; i < numberOfCells; i++) {
+    for (int i=0; i < numberOfCells; i++) {
       auto thisCell = (*my_cells)[i];
       array<double, 3> thisPosition = thisCell.GetMassLocation();
 
