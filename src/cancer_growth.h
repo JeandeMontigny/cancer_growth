@@ -441,7 +441,7 @@ namespace bdm {
       auto thisCell = (*my_cells)[i];
       array<double, 3> thisPosition = thisCell.GetMassLocation();
       //
-      outputFile << " " << i
+      outputFile << i
                  << " " << thisPosition[0] << " " << thisPosition[1] << " " << thisPosition[2]
                  << " " << thisCell.GetDiameter()
                  << " " << thisCell.GetCanDivide()
