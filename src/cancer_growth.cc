@@ -20,12 +20,17 @@ int main (int argc, char* argv[]) {
     simulations_list[i] = rve;
   }
 
-  const unsigned int numberOfIterations = 5;
+  const unsigned int numberOfIterations = 7;
   for (unsigned int j=0; j<numberOfIterations; j++) {
     std::cout << "\n\t-- Iteration " << j << " --" << std::endl;
     for (unsigned int i=0; i<simulations_list.size(); i++) {
       bdm::Initialise(simulations_list[i]);
       bdm::Simulate(simulations_list[i]);
+      int total = 0;
+      for (int k=0; k<simulations_list[i].escaped_cells.size(); k++) {
+        total = total + simulations_list[i].escaped_cells[k];
+      }
+      std::cout << "number of escaped_cells: " << total << std::endl;
       bdm::ResetBDM();
     }
     // TODO: run feb3 and update BDM_Domain informations

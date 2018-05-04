@@ -398,7 +398,7 @@ namespace bdm {
         }
       }
       // TODO: communicate escape counters to feb3
-
+      rve.escaped_cells={mx, px, my, py, mz, pz};
       all_cells = rm->template Get<MyCell>();
       for (unsigned int l=0; l<rve.n_cell_types(); l++) {
         rve.cells_mass[l] = 0.0;
