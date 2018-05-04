@@ -209,7 +209,7 @@ namespace bdm {
     // set-up these simulation parameters
     Param::live_visualization_ = false;
     Param::export_visualization_ = false;
-    Param::visualization_export_interval_ = 20;
+    Param::visualization_export_interval_ = 1;
     Param::visualize_sim_objects_["MyCell"] = std::set<std::string>{"diameter_", "cell_colour_", "oxygen_level_"};
     Param::bound_space_ = true; // create artificial boundary limits for the 3D simulation space
     Param::min_bound_ = 0;
@@ -355,11 +355,51 @@ namespace bdm {
 
     std::cout << " -- running simulation " << rve.id() << " -- " << std::endl;
 
+    int mx=0; int px=0; int my=0; int py=0; int mz=0; int pz=0; // cell escape counters
+
     for (int i=0; i<=max_step; i++) {
       //
       scheduler.Simulate(1);
-      //
+
       auto all_cells = rm->template Get<MyCell>();
+      for (unsigned int i=0; i<all_cells->size(); i++) {
+        auto thisCell = (*all_cells)[i];
+        array<double, 3> thisPosition = thisCell.GetMassLocation();
+
+        if (thisPosition[0]<=0.1) {
+          Delete(thisCell);
+          mx+=1;
+          break;
+        }
+        if (thisPosition[0]>=99.9) {
+          Delete(thisCell);
+          px+=1;
+          break;
+        }
+        if (thisPosition[1]<=0.1) {
+          Delete(thisCell);
+          my+=1;
+          break;
+        }
+        if (thisPosition[1]>=99.9) {
+          Delete(thisCell);
+          py+=1;
+          break;
+        }
+        if (thisPosition[2]<=0.1) {
+          Delete(thisCell);
+          mz+=1;
+          break;
+        }
+        if (thisPosition[2]>=99.9) {
+          Delete(thisCell);
+          pz+=1;
+          break;
+        }
+      }
+      // TODO: communicate escape counters to feb3
+
+      all_cells = rm->template Get<MyCell>();
       for (unsigned int l=0; l<rve.n_cell_types(); l++) {
         rve.cells_mass[l] = 0.0;
         rve.cells_population[l] = 0;
@@ -395,7 +435,7 @@ namespace bdm {
       auto thisCell = (*my_cells)[i];
       array<double, 3> thisPosition = thisCell.GetMassLocation();
 
-      outputFile << i << " " << thisPosition[0] << " " << thisPosition[1] << " " << thisPosition[2] << " " << thisCell.GetDiameter() << thisCell.GetCanDivide() << " " << thisCell.GetOxygenLevel() << " " << thisCell.GetHypoDiv() << " " << thisCell.GetIsCancerous() << "\n";
+      outputFile << i << " " << thisPosition[0] << " " << thisPosition[1] << " " << thisPosition[2] << " " << thisCell.GetDiameter() << " " << thisCell.GetCanDivide() << " " << thisCell.GetOxygenLevel() << " " << thisCell.GetHypoDiv() << " " << thisCell.GetIsCancerous() << "\n";
     }
 
     outputFile.close();

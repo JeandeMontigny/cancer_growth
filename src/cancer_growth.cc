@@ -20,8 +20,9 @@ int main (int argc, char* argv[]) {
     simulations_list[i] = rve;
   }
 
-  const unsigned int numberOfIterations = 3;
+  const unsigned int numberOfIterations = 5;
   for (unsigned int j=0; j<numberOfIterations; j++) {
+    std::cout << "\n\t-- Iteration " << j << " --" << std::endl;
     for (unsigned int i=0; i<simulations_list.size(); i++) {
       bdm::Initialise(simulations_list[i]);
       bdm::Simulate(simulations_list[i]);
