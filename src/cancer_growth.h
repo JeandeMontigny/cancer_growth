@@ -333,6 +333,7 @@ namespace bdm {
     const int max_step = 100;
 
     // create a PVD file for Paraview to process
+    if ( false )
     {
       std::ofstream fpvd("cells_data.pvd");
       fpvd.setf(std::ios_base::scientific|std::ios_base::unitbuf);
@@ -355,50 +356,53 @@ namespace bdm {
 
     std::cout << " -- running simulation " << rve.id() << " -- " << std::endl;
 
-    int mx=0; int px=0; int my=0; int py=0; int mz=0; int pz=0; // cell escape counters
+    const double low_bound = Param::min_bound_ + 0.01*(Param::max_bound_-Param::min_bound_);
+    const double up_bound  = Param::max_bound_ - 0.01*(Param::max_bound_-Param::min_bound_);
+    int mx=0, px=0, my=0, py=0, mz=0, pz=0; // cell escape counters
 
     for (int i=0; i<=max_step; i++) {
       //
       scheduler.Simulate(1);
-
+      //
       auto all_cells = rm->template Get<MyCell>();
       for (unsigned int i=0; i<all_cells->size(); i++) {
         auto thisCell = (*all_cells)[i];
         array<double, 3> thisPosition = thisCell.GetMassLocation();
 
-        if (thisPosition[0]<=0.1) {
+        if (thisPosition[0]<=low_bound) {
           Delete(thisCell);
           mx+=1;
           break;
         }
-        if (thisPosition[0]>=99.9) {
+        if (thisPosition[0]>=up_bound ) {
           Delete(thisCell);
           px+=1;
           break;
         }
-        if (thisPosition[1]<=0.1) {
+        if (thisPosition[1]<=low_bound) {
           Delete(thisCell);
           my+=1;
           break;
         }
-        if (thisPosition[1]>=99.9) {
+        if (thisPosition[1]>=up_bound ) {
           Delete(thisCell);
           py+=1;
           break;
         }
-        if (thisPosition[2]<=0.1) {
+        if (thisPosition[2]<=low_bound) {
           Delete(thisCell);
           mz+=1;
           break;
         }
-        if (thisPosition[2]>=99.9) {
+        if (thisPosition[2]>=up_bound ) {
           Delete(thisCell);
           pz+=1;
           break;
         }
       }
       // TODO: communicate escape counters to feb3
-      rve.escaped_cells={mx, px, my, py, mz, pz};
+      rve.escaped_cells = {mx, px, my, py, mz, pz};
+      //
       all_cells = rm->template Get<MyCell>();
       for (unsigned int l=0; l<rve.n_cell_types(); l++) {
         rve.cells_mass[l] = 0.0;
@@ -414,7 +418,9 @@ namespace bdm {
       //
       if (0==i%10) {
         std::cout << " *** Time-step " << i << " out of " << max_step << std::flush;
-        std::cout << "; # of cells (" << rve.cells_population[0] << "," << rve.cells_population[1] << ")" << std::flush;
+        std::cout << "; # of cells:" << std::flush;
+        for (unsigned int l=0; l<rve.n_cell_types(); l++)
+          std::cout << " " << rve.cells_population[l] << std::flush;
         std::cout << std::endl;
       }
 
@@ -434,8 +440,15 @@ namespace bdm {
     for (int i=0; i < numberOfCells; i++) {
       auto thisCell = (*my_cells)[i];
       array<double, 3> thisPosition = thisCell.GetMassLocation();
-
-      outputFile << i << " " << thisPosition[0] << " " << thisPosition[1] << " " << thisPosition[2] << " " << thisCell.GetDiameter() << " " << thisCell.GetCanDivide() << " " << thisCell.GetOxygenLevel() << " " << thisCell.GetHypoDiv() << " " << thisCell.GetIsCancerous() << "\n";
+      //
+      outputFile << " " << i
+                 << " " << thisPosition[0] << " " << thisPosition[1] << " " << thisPosition[2]
+                 << " " << thisCell.GetDiameter()
+                 << " " << thisCell.GetCanDivide()
+                 << " " << thisCell.GetOxygenLevel()
+                 << " " << thisCell.GetHypoDiv()
+                 << " " << thisCell.GetIsCancerous()
+                 << std::endl;
     }
 
     outputFile.close();
