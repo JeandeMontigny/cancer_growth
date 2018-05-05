@@ -353,61 +353,51 @@ namespace bdm {
 
     // iterate for all time-steps
     auto rm = TResourceManager::Get();
+    auto all_cells = rm->template Get<MyCell>();
 
     std::cout << " -- running simulation " << rve.id() << " -- " << std::endl;
 
     const double low_bound = Param::min_bound_ + 0.01*(Param::max_bound_-Param::min_bound_);
     const double up_bound  = Param::max_bound_ - 0.01*(Param::max_bound_-Param::min_bound_);
-    int mx=0, px=0, my=0, py=0, mz=0, pz=0; // cell escape counters
+    unsigned int current_escaped_cells[] = {0, 0, 0, 0, 0, 0};
 
     for (int i=0; i<=max_step; i++) {
       //
       scheduler.Simulate(1);
       //
-      auto all_cells = rm->template Get<MyCell>();
+      all_cells = rm->template Get<MyCell>();
       for (unsigned int i=0; i<all_cells->size(); i++) {
         auto thisCell = (*all_cells)[i];
         array<double, 3> thisPosition = thisCell.GetMassLocation();
-
-        if (thisPosition[0]<=low_bound) {
+        if        (thisPosition[0]<=low_bound) {
           Delete(thisCell);
-          mx+=1;
-          break;
-        }
-        if (thisPosition[0]>=up_bound ) {
+          current_escaped_cells[0] += 1;
+        } else if (thisPosition[0]>=up_bound ) {
           Delete(thisCell);
-          px+=1;
-          break;
-        }
-        if (thisPosition[1]<=low_bound) {
+          current_escaped_cells[1] += 1;
+        } else if (thisPosition[1]<=low_bound) {
           Delete(thisCell);
-          my+=1;
-          break;
-        }
-        if (thisPosition[1]>=up_bound ) {
+          current_escaped_cells[2] += 1;
+        } else if (thisPosition[1]>=up_bound ) {
           Delete(thisCell);
-          py+=1;
-          break;
-        }
-        if (thisPosition[2]<=low_bound) {
+          current_escaped_cells[3] += 1;
+        } else if (thisPosition[2]<=low_bound) {
           Delete(thisCell);
-          mz+=1;
-          break;
-        }
-        if (thisPosition[2]>=up_bound ) {
+          current_escaped_cells[4] += 1;
+        } else if (thisPosition[2]>=up_bound ) {
           Delete(thisCell);
-          pz+=1;
-          break;
+          current_escaped_cells[5] += 1;
         }
       }
       // TODO: communicate escape counters to feb3
-      rve.escaped_cells = {mx, px, my, py, mz, pz};
-      //
-      all_cells = rm->template Get<MyCell>();
+      for (int k=0; k<6; k++) {
+        rve.escaped_cells[k] = current_escaped_cells[k];
+      }
       for (unsigned int l=0; l<rve.n_cell_types(); l++) {
         rve.cells_mass[l] = 0.0;
         rve.cells_population[l] = 0;
       }
+      all_cells = rm->template Get<MyCell>();
       for (unsigned int i=0; i<all_cells->size(); i++) {
         auto&& cell = (*all_cells)[i];
         const unsigned int cell_type = cell.GetCellColour();
@@ -434,11 +424,11 @@ namespace bdm {
 
     std::cout << " -- exporting simulation " << rve.id() << " -- " << std::endl;
 
-    auto my_cells = rm->template Get<MyCell>();
-    int numberOfCells = my_cells->size();
+    all_cells = rm->template Get<MyCell>();
+    int numberOfCells = all_cells->size();
 
     for (int i=0; i < numberOfCells; i++) {
-      auto thisCell = (*my_cells)[i];
+      auto thisCell = (*all_cells)[i];
       array<double, 3> thisPosition = thisCell.GetMassLocation();
       //
       outputFile << i
