@@ -124,26 +124,26 @@ namespace bdm {
       // cell grows until it reaches a diameter of ...
       if (cell->GetDiameter() < 8.0) {
         cell->ChangeVolume(growthSpeed);
-        cell->UpdateMassLocation(cell_movements);
-        cell->SetPosition(cell->GetMassLocation());
+        cell->UpdatePosition(cell_movements);
+        cell->SetPosition(cell->GetPosition());
         cell->SetTractorForce({0, 0, 0});
       }
       else if (cell->GetDiameter() >= 8.0) {
         cell->ChangeVolume(0.0);
-        cell->UpdateMassLocation(cell_movements);
-        cell->SetPosition(cell->GetMassLocation());
+        cell->UpdatePosition(cell_movements);
+        cell->SetPosition(cell->GetPosition());
         cell->SetTractorForce({0, 0, 0});
       }
 
       if (cell->GetCanDivide() && cell->GetDiameter() > 7.0) {
         double aNewRandomDouble = gTRandom.Uniform(0.0, 1.0);
         if (aNewRandomDouble <= divideProba) {
-          auto&& daughter = Divide(*cell);
-          daughter.SetCellColour(cell->GetCellColour()); // daughter takes the cell_colour_ value of her mother
-          daughter.SetCanDivide(true); // daughter will be able to divide
-          daughter.SetHypoDiv(cell->GetHypoDiv()); // daughter will be able to divide in hypoxy
-          daughter.SetOxygenLevel(cell->GetOxygenLevel()); // daughter takes the oxygen_level_ value of her mother
-          daughter.SetIsCancerous(true);
+          auto daughter = cell->Divide();
+          daughter->SetCellColour(cell->GetCellColour()); // daughter takes the cell_colour_ value of her mother
+          daughter->SetCanDivide(true); // daughter will be able to divide
+          daughter->SetHypoDiv(cell->GetHypoDiv()); // daughter will be able to divide in hypoxy
+          daughter->SetOxygenLevel(cell->GetOxygenLevel()); // daughter takes the oxygen_level_ value of her mother
+          daughter->SetIsCancerous(true);
         }
       }
     }// end run
@@ -365,7 +365,7 @@ namespace bdm {
       all_cells = rm->template Get<MyCell>();
       for (unsigned int i=0; i<all_cells->size(); i++) {
         auto thisCell = (*all_cells)[i];
-        array<double, 3> thisPosition = thisCell.GetMassLocation();
+        array<double, 3> thisPosition = thisCell.GetPosition();
         if (thisPosition[0]<=low_bound) {
           thisCell.RemoveFromSimulation();
           current_escaped_cells[0] += 1;
@@ -427,7 +427,7 @@ namespace bdm {
 
     for (int i=0; i < numberOfCells; i++) {
       auto thisCell = (*all_cells)[i];
-      array<double, 3> thisPosition = thisCell.GetMassLocation();
+      array<double, 3> thisPosition = thisCell.GetPosition();
       //
       outputFile << i
                  << " " << thisPosition[0] << " " << thisPosition[1] << " " << thisPosition[2]
