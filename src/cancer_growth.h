@@ -44,112 +44,112 @@ namespace bdm {
     vec<bool> is_cancerous_;
   };
 
-    struct HostCellBiologyModule : public BaseBiologyModule {
-    public:
-      HostCellBiologyModule () : BaseBiologyModule(gAllBmEvents) {}
+  struct HostCellBiologyModule : public BaseBiologyModule {
+  public:
+    HostCellBiologyModule () : BaseBiologyModule(gAllBmEvents) {}
 
-      template <typename T>
-      void Run (T* cell) {
-        const double currentOxygenLevel = cell->GetOxygenLevel();
-        int growthSpeed;
-        array<double, 3> cell_movements;
-        double divideProba;
+    template <typename T>
+    void Run (T* cell) {
+      const double currentOxygenLevel = cell->GetOxygenLevel();
+      int growthSpeed;
+      array<double, 3> cell_movements;
+      double divideProba;
 
-        // normoxia: high division rate but low migration
-        if (currentOxygenLevel > 0.7) {
-          growthSpeed = 0;
-          cell_movements = {gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1)};
-          divideProba = 0.9;
-          cell->SetHypoDiv(true);
-        }
-        // hypoxia: low division rate but high migration
-        else if (currentOxygenLevel > 0.3) {
-          growthSpeed = 0;
-          cell_movements = {gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4)};
-          divideProba = 0.4;
-          cell->SetHypoDiv(false);
-        }
-        // necrosis: no division and no migration, just die!
-        else {
-          return;
-          growthSpeed = 0;
-          cell_movements = {0.0, 0.0, 0.0};
-          divideProba = 0.0;
-          cell->SetHypoDiv(false);
-        }
-
-//        cell->ChangeVolume(0.0);
-//        cell->UpdateMassLocation(cell_movements);
-//        cell->SetPosition(cell->GetMassLocation());
-//        cell->SetTractorForce({0, 0, 0});
+      // normoxia: high division rate but low migration
+      if (currentOxygenLevel > 0.7) {
+        growthSpeed = 0;
+        cell_movements = {gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1)};
+        divideProba = 0.9;
+        cell->SetHypoDiv(true);
+      }
+      // hypoxia: low division rate but high migration
+      else if (currentOxygenLevel > 0.3) {
+        growthSpeed = 0;
+        cell_movements = {gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4)};
+        divideProba = 0.4;
+        cell->SetHypoDiv(false);
+      }
+      // necrosis: no division and no migration, just die!
+      else {
+        return;
+        growthSpeed = 0;
+        cell_movements = {0.0, 0.0, 0.0};
+        divideProba = 0.0;
+        cell->SetHypoDiv(false);
       }
 
-      ClassDefNV (HostCellBiologyModule, 1);
-    }; // end: HostCellBiologyModule
+      //        cell->ChangeVolume(0.0);
+      //        cell->UpdateMassLocation(cell_movements);
+      //        cell->SetPosition(cell->GetMassLocation());
+      //        cell->SetTractorForce({0, 0, 0});
+    }
 
-    struct CancerCellBiologyModule : public BaseBiologyModule {
-    public:
-      CancerCellBiologyModule () : BaseBiologyModule(gAllBmEvents) {}
+    ClassDefNV (HostCellBiologyModule, 1);
+  }; // end: HostCellBiologyModule
 
-      template <typename T>
-      void Run (T* cell) {
-        const double currentOxygenLevel = cell->GetOxygenLevel();
-        int growthSpeed;
-        array<double, 3> cell_movements;
-        double divideProba;
+  struct CancerCellBiologyModule : public BaseBiologyModule {
+  public:
+    CancerCellBiologyModule () : BaseBiologyModule(gAllBmEvents) {}
 
-        // normoxia: high division rate but low migration
-        if (currentOxygenLevel > 0.7) {
-          growthSpeed = 100;
-          cell_movements = {gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1)};
-          divideProba = 0.9;
-          cell->SetHypoDiv(true);
-        }
-        // hypoxia: low division rate but high migration
-        else if (currentOxygenLevel > 0.3) {
-          growthSpeed = 40;
-          cell_movements = {gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4)};
-          divideProba = 0.4;
-          cell->SetHypoDiv(false);
-        }
-        // necrosis: no division and no migration, just die!
-        else {
-          return;
-          growthSpeed = 0;
-          cell_movements = {0.0, 0.0, 0.0};
-          divideProba = 0.0;
-          cell->SetHypoDiv(false);
-        }
+    template <typename T>
+    void Run (T* cell) {
+      const double currentOxygenLevel = cell->GetOxygenLevel();
+      int growthSpeed;
+      array<double, 3> cell_movements;
+      double divideProba;
 
-        // cell grows until it reaches a diameter of ...
-        if (cell->GetDiameter() < 8.0) {
-          cell->ChangeVolume(growthSpeed);
-          cell->UpdateMassLocation(cell_movements);
-          cell->SetPosition(cell->GetMassLocation());
-          cell->SetTractorForce({0, 0, 0});
-        }
-        else if (cell->GetDiameter() >= 8.0) {
-          cell->ChangeVolume(0.0);
-          cell->UpdateMassLocation(cell_movements);
-          cell->SetPosition(cell->GetMassLocation());
-          cell->SetTractorForce({0, 0, 0});
-        }
+      // normoxia: high division rate but low migration
+      if (currentOxygenLevel > 0.7) {
+        growthSpeed = 100;
+        cell_movements = {gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1)};
+        divideProba = 0.9;
+        cell->SetHypoDiv(true);
+      }
+      // hypoxia: low division rate but high migration
+      else if (currentOxygenLevel > 0.3) {
+        growthSpeed = 40;
+        cell_movements = {gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4)};
+        divideProba = 0.4;
+        cell->SetHypoDiv(false);
+      }
+      // necrosis: no division and no migration, just die!
+      else {
+        return;
+        growthSpeed = 0;
+        cell_movements = {0.0, 0.0, 0.0};
+        divideProba = 0.0;
+        cell->SetHypoDiv(false);
+      }
 
-        if (cell->GetCanDivide() && cell->GetDiameter() > 7.0) {
-          double aNewRandomDouble = gTRandom.Uniform(0.0, 1.0);
-          if (aNewRandomDouble <= divideProba) {
-            auto&& daughter = Divide(*cell);
-            daughter.SetCellColour(cell->GetCellColour()); // daughter takes the cell_colour_ value of her mother
-            daughter.SetCanDivide(true); // daughter will be able to divide
-            daughter.SetHypoDiv(cell->GetHypoDiv()); // daughter will be able to divide in hypoxy
-            daughter.SetOxygenLevel(cell->GetOxygenLevel()); // daughter takes the oxygen_level_ value of her mother
-            daughter.SetIsCancerous(true);
-          }
-        }
-      }// end run
+      // cell grows until it reaches a diameter of ...
+      if (cell->GetDiameter() < 8.0) {
+        cell->ChangeVolume(growthSpeed);
+        cell->UpdateMassLocation(cell_movements);
+        cell->SetPosition(cell->GetMassLocation());
+        cell->SetTractorForce({0, 0, 0});
+      }
+      else if (cell->GetDiameter() >= 8.0) {
+        cell->ChangeVolume(0.0);
+        cell->UpdateMassLocation(cell_movements);
+        cell->SetPosition(cell->GetMassLocation());
+        cell->SetTractorForce({0, 0, 0});
+      }
 
-      ClassDefNV (CancerCellBiologyModule, 1);
-    }; // end: CancerCellBiologyModule
+      if (cell->GetCanDivide() && cell->GetDiameter() > 7.0) {
+        double aNewRandomDouble = gTRandom.Uniform(0.0, 1.0);
+        if (aNewRandomDouble <= divideProba) {
+          auto&& daughter = Divide(*cell);
+          daughter.SetCellColour(cell->GetCellColour()); // daughter takes the cell_colour_ value of her mother
+          daughter.SetCanDivide(true); // daughter will be able to divide
+          daughter.SetHypoDiv(cell->GetHypoDiv()); // daughter will be able to divide in hypoxy
+          daughter.SetOxygenLevel(cell->GetOxygenLevel()); // daughter takes the oxygen_level_ value of her mother
+          daughter.SetIsCancerous(true);
+        }
+      }
+    }// end run
+
+    ClassDefNV (CancerCellBiologyModule, 1);
+  }; // end: CancerCellBiologyModule
 
   // 2. Define the compile-time parameter
   template <typename Backend>
@@ -193,8 +193,8 @@ namespace bdm {
   inline
   double get3DDistSq (std::array<double, 3> cell1, std::array<double, 3> cell2) {
     return pow2((cell1[0]-cell2[0]))
-          +pow2((cell1[1]-cell2[1]))
-          +pow2((cell1[2]-cell2[2]));
+    +pow2((cell1[1]-cell2[1]))
+    +pow2((cell1[2]-cell2[2]));
   }
 
 
@@ -296,9 +296,6 @@ namespace bdm {
       CellCreator(45.00, 55.00, rve.cells_population[1], Construct_Cancer_Cells);
     }
 
-//    cout << "regular cells created = " << rve.cells_population[0] << endl;
-//    cout << "cancerous cells created = " << rve.cells_population[1] << endl;
-
     auto rm = TResourceManager::Get();
     auto all_cells = rm->template Get<MyCell>();
     for (unsigned int l=0; l<rve.n_cell_types(); l++) {
@@ -369,27 +366,27 @@ namespace bdm {
       for (unsigned int i=0; i<all_cells->size(); i++) {
         auto thisCell = (*all_cells)[i];
         array<double, 3> thisPosition = thisCell.GetMassLocation();
-        if        (thisPosition[0]<=low_bound) {
-          Delete(thisCell);
+        if (thisPosition[0]<=low_bound) {
+          thisCell.RemoveFromSimulation();
           current_escaped_cells[0] += 1;
         } else if (thisPosition[0]>=up_bound ) {
-          Delete(thisCell);
+          thisCell.RemoveFromSimulation();
           current_escaped_cells[1] += 1;
         } else if (thisPosition[1]<=low_bound) {
-          Delete(thisCell);
+          thisCell.RemoveFromSimulation();
           current_escaped_cells[2] += 1;
         } else if (thisPosition[1]>=up_bound ) {
-          Delete(thisCell);
+          thisCell.RemoveFromSimulation();
           current_escaped_cells[3] += 1;
         } else if (thisPosition[2]<=low_bound) {
-          Delete(thisCell);
+          thisCell.RemoveFromSimulation();
           current_escaped_cells[4] += 1;
         } else if (thisPosition[2]>=up_bound ) {
-          Delete(thisCell);
+          thisCell.RemoveFromSimulation();
           current_escaped_cells[5] += 1;
         }
       }
-      // TODO: communicate escape counters to feb3
+
       for (int k=0; k<6; k++) {
         rve.escaped_cells[k] = current_escaped_cells[k];
       }
@@ -409,8 +406,9 @@ namespace bdm {
       if (0==i%10) {
         std::cout << " *** Time-step " << i << " out of " << max_step << std::flush;
         std::cout << "; # of cells:" << std::flush;
-        for (unsigned int l=0; l<rve.n_cell_types(); l++)
+        for (unsigned int l=0; l<rve.n_cell_types(); l++) {
           std::cout << " " << rve.cells_population[l] << std::flush;
+        }
         std::cout << std::endl;
       }
 

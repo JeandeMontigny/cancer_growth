@@ -27,8 +27,9 @@ int main (int argc, char* argv[]) {
       bdm::Initialise(simulations_list[i]);
       bdm::Simulate(simulations_list[i]);
       int total = 0;
-      for (int k=0; k<6; k++)
+      for (int k=0; k<6; k++) {
         total = total + simulations_list[i].escaped_cells[k];
+      }
       std::cout << "number of escaped_cells: " << total << std::endl;
       bdm::ResetBDM();
     }
