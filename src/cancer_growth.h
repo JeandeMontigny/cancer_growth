@@ -2,6 +2,7 @@
 #define CANCER_GROWTH_H_
 
 #include <fstream>
+#include <sys/stat.h>
 #include "biodynamo.h"
 #include "../bdm_feb3_interface.h"
 
@@ -161,7 +162,7 @@ namespace bdm {
 
 
 
-  // my cell creator
+  // cell creator
   template <typename Function, typename TResourceManager = ResourceManager<>>
   static
   void CellCreator (double min, double max, unsigned int n_cells, Function cell_builder) {
@@ -198,6 +199,25 @@ namespace bdm {
   }
 
 
+  // MyCellCreator
+    template <typename Function, typename TResourceManager = ResourceManager<>>
+    static void MyCellCreator(double x_min, double x_max, double y_min, double y_max, double z_min, double z_max, int num_cells, Function cell_builder) {
+      auto rm = TResourceManager::Get();
+      // Determine simulation object type which is returned by the cell_builder
+      using FunctionReturnType = decltype(cell_builder({0, 0, 0}));
+      auto container = rm->template Get<FunctionReturnType>();
+      container->reserve(num_cells);
+
+      for (int i = 0; i < num_cells; i++) {
+        double x = gTRandom.Uniform(x_min, x_max);
+        double y = gTRandom.Uniform(y_min, y_max);
+        double z = gTRandom.Uniform(z_min, z_max);
+        auto new_simulation_object = cell_builder({x, y, z});
+        container->push_back(new_simulation_object);
+      }
+      container->Commit();
+  } // end MyCellCreator
+
 
   // 3. Core initialisation routine
   template <typename TResourceManager = ResourceManager<>>
@@ -207,10 +227,10 @@ namespace bdm {
     std::cout << " -- initialization of simulation " << rve.id() << " -- " << std::endl;
 
     // set-up these simulation parameters
-    Param::live_visualization_ = false;
-    Param::export_visualization_ = false;
-    Param::visualization_export_interval_ = 1;
-    Param::visualize_sim_objects_["MyCell"] = std::set<std::string>{"diameter_", "cell_colour_", "oxygen_level_"};
+    // Param::live_visualization_ = false;
+    // Param::export_visualization_ = false;
+    // Param::visualization_export_interval_ = 1;
+    // Param::visualize_sim_objects_["MyCell"] = std::set<std::string>{"diameter_", "cell_colour_", "oxygen_level_"};
     Param::bound_space_ = true; // create artificial boundary limits for the 3D simulation space
     Param::min_bound_ = 0;
     Param::max_bound_ = 100.0;
@@ -288,11 +308,40 @@ namespace bdm {
         cells->push_back(cell);
       }
       cells->Commit();
+
+      // create cells comming from neighbour cubes. 6 faces
+      // create first x half (face 0, x=0) imcoming cells
+      if (rve.face_incomingCells[0]!=0) {
+        MyCellCreator(Param::min_bound_, Param::max_bound_/4,        Param::min_bound_+(Param::max_bound_*0.1), Param::max_bound_-(Param::max_bound_*0.1),        Param::min_bound_+(Param::max_bound_*0.1), Param::max_bound_-(Param::max_bound_*0.1), rve.face_incomingCells[0], Construct_Cancer_Cells);
+      }
+      // create second x half (face 1, x=max) imcoming cells
+      if (rve.face_incomingCells[1]!=0) {
+        MyCellCreator(Param::max_bound_/4, Param::max_bound_,        Param::min_bound_+(Param::max_bound_*0.1), Param::max_bound_-(Param::max_bound_*0.1),        Param::min_bound_+(Param::max_bound_*0.1), Param::max_bound_-(Param::max_bound_*0.1), rve.face_incomingCells[1], Construct_Cancer_Cells);
+      }
+
+      // create first y half (face 2, y=0) imcoming cells
+      if (rve.face_incomingCells[2]!=0) {
+        MyCellCreator(Param::min_bound_+(Param::max_bound_*0.1), Param::max_bound_-(Param::max_bound_*0.1), Param::min_bound_, Param::max_bound_/4, Param::min_bound_+(Param::max_bound_*0.1), Param::max_bound_-(Param::max_bound_*0.1), rve.face_incomingCells[2], Construct_Cancer_Cells);
+      }
+      // create second y half (face 3, y=max) imcoming cells
+      if (rve.face_incomingCells[3]!=0) {
+        MyCellCreator(Param::min_bound_+(Param::max_bound_*0.1), Param::max_bound_-(Param::max_bound_*0.1), Param::max_bound_/4, Param::max_bound_, Param::min_bound_+(Param::max_bound_*0.1), Param::max_bound_-(Param::max_bound_*0.1), rve.face_incomingCells[3], Construct_Cancer_Cells);
+      }
+
+      // create first z half (face 4, z=0) imcoming cells
+      if (rve.face_incomingCells[4]!=0) {
+        MyCellCreator(Param::min_bound_+(Param::max_bound_*0.1), Param::max_bound_-(Param::max_bound_*0.1), Param::min_bound_+(Param::max_bound_*0.1), Param::max_bound_-(Param::max_bound_*0.1), Param::min_bound_, Param::max_bound_/4, rve.face_incomingCells[4], Construct_Cancer_Cells);
+      }
+      // create second z half (face 5, z=max) imcoming cells
+      if (rve.face_incomingCells[5]!=0) {
+        MyCellCreator(Param::min_bound_+(Param::max_bound_*0.1), Param::max_bound_-(Param::max_bound_*0.1), Param::min_bound_+(Param::max_bound_*0.1), Param::max_bound_-(Param::max_bound_*0.1), Param::max_bound_/4, Param::max_bound_, rve.face_incomingCells[5], Construct_Cancer_Cells);
+      }
+
     }
 
     else {
       // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
-      CellCreator(10, 90, rve.cells_population[0], Construct_Host_Cells);
+      CellCreator(Param::min_bound_+(Param::max_bound_*0.1), Param::max_bound_-(Param::max_bound_*0.1), rve.cells_population[0], Construct_Host_Cells);
       CellCreator(45.00, 55.00, rve.cells_population[1], Construct_Cancer_Cells);
     }
 
@@ -413,8 +462,6 @@ namespace bdm {
       }
 
     } // end iterate for all time-steps
-
-    // TODO: create separated folder for each simulation, labelled by the BDM_simulation number
 
     // export simulation in external file
     ofstream outputFile;

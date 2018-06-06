@@ -47,6 +47,7 @@ public:
     std::vector<RealVector3d> microstructural_level_gradient;
     RealVector3d interstitial_fluid_velocity;
     unsigned int escaped_cells[6];
+    unsigned int face_incomingCells[6];
 private:
     unsigned int _id, // simulation index
                  _n_cell_types, // number of cell types or/and phenotypes
