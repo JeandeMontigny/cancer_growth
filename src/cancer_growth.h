@@ -109,8 +109,8 @@ namespace bdm {
       // hypoxia: low division rate but high migration
       else if (currentOxygenLevel > 0.3) {
         growthSpeed = 40;
-        cell_movements = {gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4)};
-        divideProba = 0.4;
+        cell_movements = {gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1)};
+        divideProba = 0.15;
         cell->SetHypoDiv(false);
       }
       // necrosis: no division and no migration, just die!
@@ -161,7 +161,6 @@ namespace bdm {
   };
 
 
-
   // cell creator
   template <typename Function, typename TResourceManager = ResourceManager<>>
   static
@@ -184,21 +183,6 @@ namespace bdm {
     container->Commit();
   }
 
-
-
-  inline
-  double pow2 (double a) { return a*a; }
-
-
-
-  inline
-  double get3DDistSq (std::array<double, 3> cell1, std::array<double, 3> cell2) {
-    return pow2((cell1[0]-cell2[0]))
-    +pow2((cell1[1]-cell2[1]))
-    +pow2((cell1[2]-cell2[2]));
-  }
-
-
   // MyCellCreator
     template <typename Function, typename TResourceManager = ResourceManager<>>
     static void MyCellCreator(double x_min, double x_max, double y_min, double y_max, double z_min, double z_max, int num_cells, Function cell_builder) {
@@ -218,6 +202,17 @@ namespace bdm {
       container->Commit();
   } // end MyCellCreator
 
+
+  inline
+  double pow2 (double a) { return a*a; }
+
+
+  inline
+  double get3DDistSq (std::array<double, 3> cell1, std::array<double, 3> cell2) {
+    return pow2((cell1[0]-cell2[0]))
+    +pow2((cell1[1]-cell2[1]))
+    +pow2((cell1[2]-cell2[2]));
+  }
 
   // 3. Core initialisation routine
   template <typename TResourceManager = ResourceManager<>>
@@ -239,7 +234,7 @@ namespace bdm {
 
     auto Construct_Host_Cells =  [](const std::array<double, 3>& position) {
       MyCell cell(position);
-      cell.SetDiameter(2.0);
+      cell.SetDiameter(6.5);
       cell.SetCellColour(0);
       cell.AddBiologyModule(HostCellBiologyModule());
       cell.SetCanDivide(false);
@@ -378,25 +373,6 @@ namespace bdm {
     Scheduler<> scheduler;
     const int max_step = 100;
 
-    // create a PVD file for Paraview to process
-    if ( false )
-    {
-      std::ofstream fpvd("cells_data.pvd");
-      fpvd.setf(std::ios_base::scientific|std::ios_base::unitbuf);
-      //
-      fpvd << "<?xml version=\"1.0\"?>" << std::endl;
-      fpvd << "<VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\">" << std::endl;
-      fpvd << "<Collection>" << std::endl;
-      for (int i=0; i<=max_step; i++) {
-        const double t = (i+0.0)/max_step;
-        if ( 0 == i || max_step == i || i%Param::visualization_export_interval_ == 0 ) {
-          fpvd << "<DataSet timestep=\"" << t << "\" group=\"\" part=\"0\" file=\"cells_data_" << i << ".pvtu\"/>" << std::endl;
-        }
-      }
-      fpvd << "</Collection>" << std::endl;
-      fpvd << "</VTKFile>" << std::endl;
-    }
-
     // iterate for all time-steps
     auto rm = TResourceManager::Get();
     auto all_cells = rm->template Get<MyCell>();
@@ -489,8 +465,6 @@ namespace bdm {
     outputFile.close();
 
   } // end simulate
-
-
 
 } // namespace bdm
 
