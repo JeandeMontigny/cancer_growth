@@ -3,7 +3,7 @@
 int main (int argc, char* argv[]) {
   bdm::InitializeBiodynamo("cancer_growth");
 
-  const int desiredNumberOfBdmSimulations = 4;
+  const int desiredNumberOfBdmSimulations = 1;
   std::array<BDM_Domain, desiredNumberOfBdmSimulations> simulations_list;
 
   for (int i=0; i<desiredNumberOfBdmSimulations; i++) {
@@ -11,9 +11,9 @@ int main (int argc, char* argv[]) {
     const int n_cell_types =2, n_biochem =1, n_mstruct =1;
     BDM_Domain rve(i, n_cell_types, n_biochem, n_mstruct);
     // set some initial values for these data
-    rve.cells_population[0] = 100;
-    rve.cells_population[1] = 10;
-    rve.biochemical_level[0] = 1.0;
+    rve.cells_population[0] = 1; // 1000
+    rve.cells_population[1] = 1; // 10
+    rve.biochemical_level[0] = 1;
     rve.biochemical_level_gradient[0] = RealVector3d({0.0, 0.0, 0.0});
     rve.microstructural_level[0] = 0.0;
     rve.microstructural_level_gradient[0] = RealVector3d({0.0, 0.0, 0.0});
@@ -24,7 +24,7 @@ int main (int argc, char* argv[]) {
     simulations_list[i] = rve;
   }
 
-  const unsigned int numberOfIterations = 7;
+  const unsigned int numberOfIterations = 1;
   for (unsigned int j=0; j<numberOfIterations; j++) {
     std::cout << "\n\t-- Iteration " << j << " --" << std::endl;
     for (unsigned int i=0; i<simulations_list.size(); i++) {

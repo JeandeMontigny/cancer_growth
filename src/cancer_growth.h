@@ -109,8 +109,8 @@ namespace bdm {
       // hypoxia: low division rate but high migration
       else if (currentOxygenLevel > 0.3) {
         growthSpeed = 40;
-        cell_movements = {gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4), gTRandom.Uniform(-4, 4)};
-        divideProba = 0.4;
+        cell_movements = {gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1), gTRandom.Uniform(-1, 1)};
+        divideProba = 0.15;
         cell->SetHypoDiv(false);
       }
       // necrosis: no division and no migration, just die!
@@ -152,14 +152,93 @@ namespace bdm {
     ClassDefNV (CancerCellBiologyModule, 1);
   }; // end: CancerCellBiologyModule
 
+
+enum Substances { cancerous_diffusion };
+
+  // 1b. Define secretion behavior:
+struct CancerousSecretion : public BaseBiologyModule {
+  // Daughter cells inherit this biology module
+  CancerousSecretion() : BaseBiologyModule(gAllBmEvents) {}
+
+  template <typename T>
+  void Run(T* sim_object) {
+    if (sim_object->template IsSoType<MyCell>()) {
+      auto&& cell = sim_object->template ReinterpretCast<MyCell>();
+
+      if (!init_) {
+        dg_ = GetDiffusionGrid(cancerous_diffusion);
+        init_ = true;
+      }
+      auto& secretion_position = cell->GetPosition();
+      dg_->IncreaseConcentrationBy(secretion_position, 0.5);
+    }
+  } // end run
+
+private:
+  bool init_ = false;
+  DiffusionGrid* dg_ = nullptr;
+  ClassDefNV(CancerousSecretion, 1);
+}; // end biologyModule SubstanceSecretion
+
+struct CancerousMovement : public BaseBiologyModule {
+  // Daughter cells inherit this biology module
+  CancerousMovement() : BaseBiologyModule(gAllBmEvents) {}
+
+  template <typename T>
+  void Run(T* sim_object) {
+    if (sim_object->template IsSoType<MyCell>()) {
+      auto&& cell = sim_object->template ReinterpretCast<MyCell>();
+
+      std::array<double, 3> mov = { 0, 0, 0.8 }; // gTRandom.Uniform(-1, 1)
+
+      cell->UpdatePosition(mov);
+      cell->SetPosition(cell->GetPosition());
+    }
+  }
+
+    private:
+      ClassDefNV(CancerousMovement, 1);
+  };
+
+
+struct Lymphocytes : public BaseBiologyModule {
+public:
+  Lymphocytes () : BaseBiologyModule(gAllBmEvents) {}
+
+  template <typename T>
+  void Run (T* cell) {
+
+    if (!init_) {
+      dg_ = GetDiffusionGrid(cancerous_diffusion);
+      init_ = true;
+    }
+    auto& position = cell->GetPosition();
+    std::array<double, 3> gradient;
+    double concentration;
+
+    dg_->GetGradient(position, &gradient);
+    concentration = dg_->GetConcentration(position);
+
+    std::cout << "concentration: " << concentration << std::endl;
+
+    cell->UpdatePosition(gradient);
+    cell->SetPosition(cell->GetPosition());
+  }
+
+private:
+  bool init_ = false;
+  DiffusionGrid* dg_ = nullptr;
+  ClassDefNV (Lymphocytes, 1);
+}; // end Lymphocytes
+
+
   // 2. Define the compile-time parameter
   template <typename Backend>
   struct CompileTimeParam : public DefaultCompileTimeParam<Backend> {
     // using BiologyModules = Variant<HostCellBiologyModule>;
-    using BiologyModules = Variant<CancerCellBiologyModule, HostCellBiologyModule>;
+    using BiologyModules = Variant<CancerCellBiologyModule, HostCellBiologyModule, CancerousSecretion, CancerousMovement, Lymphocytes>;
     using AtomicTypes = VariadicTypedef<MyCell>;
   };
-
 
 
   // cell creator
@@ -184,21 +263,6 @@ namespace bdm {
     container->Commit();
   }
 
-
-
-  inline
-  double pow2 (double a) { return a*a; }
-
-
-
-  inline
-  double get3DDistSq (std::array<double, 3> cell1, std::array<double, 3> cell2) {
-    return pow2((cell1[0]-cell2[0]))
-    +pow2((cell1[1]-cell2[1]))
-    +pow2((cell1[2]-cell2[2]));
-  }
-
-
   // MyCellCreator
     template <typename Function, typename TResourceManager = ResourceManager<>>
     static void MyCellCreator(double x_min, double x_max, double y_min, double y_max, double z_min, double z_max, int num_cells, Function cell_builder) {
@@ -219,6 +283,17 @@ namespace bdm {
   } // end MyCellCreator
 
 
+  inline
+  double pow2 (double a) { return a*a; }
+
+
+  inline
+  double get3DDistSq (std::array<double, 3> cell1, std::array<double, 3> cell2) {
+    return pow2((cell1[0]-cell2[0]))
+    +pow2((cell1[1]-cell2[1]))
+    +pow2((cell1[2]-cell2[2]));
+  }
+
   // 3. Core initialisation routine
   template <typename TResourceManager = ResourceManager<>>
   inline
@@ -226,37 +301,44 @@ namespace bdm {
 
     std::cout << " -- initialization of simulation " << rve.id() << " -- " << std::endl;
 
+    ModelInitializer::DefineSubstance(cancerous_diffusion, "cancerous_diffusion", 1, 0.5, 10);
+
     // set-up these simulation parameters
     // Param::live_visualization_ = false;
     // Param::export_visualization_ = false;
     // Param::visualization_export_interval_ = 1;
     // Param::visualize_sim_objects_["MyCell"] = std::set<std::string>{"diameter_", "cell_colour_", "oxygen_level_"};
-    Param::bound_space_ = true; // create artificial boundary limits for the 3D simulation space
+    Param::bound_space_ = false; // create artificial boundary limits for the 3D simulation space
     Param::min_bound_ = 0;
     Param::max_bound_ = 100.0;
     Param::run_mechanical_interactions_ = true;
     gTRandom.SetSeed(2448);
 
     auto Construct_Host_Cells =  [](const std::array<double, 3>& position) {
-      MyCell cell(position);
-      cell.SetDiameter(2.0);
+      MyCell cell({40, 40, 10});
+//      MyCell cell(position);
+      cell.SetDiameter(6.5);
       cell.SetCellColour(0);
-      cell.AddBiologyModule(HostCellBiologyModule());
-      cell.SetCanDivide(false);
-      // cell.SetHypoDiv(true);
-      cell.SetIsCancerous(false);
+      cell.AddBiologyModule(Lymphocytes());
+      // cell.AddBiologyModule(HostCellBiologyModule());
+      // cell.SetCanDivide(false);
+      // // cell.SetHypoDiv(true);
+      // cell.SetIsCancerous(false);
       return cell;
     };
 
     // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
     auto Construct_Cancer_Cells =  [](const std::array<double, 3>& position) {
-      MyCell cell(position);
+      MyCell cell({50, 50, 20});
+//      MyCell cell(position);
       cell.SetDiameter(6.0);
       cell.SetCellColour(1);
-      cell.AddBiologyModule(CancerCellBiologyModule());
-      cell.SetCanDivide(true);
-      cell.SetHypoDiv(true);
-      cell.SetIsCancerous(true);
+      cell.AddBiologyModule(CancerousSecretion());
+      cell.AddBiologyModule(CancerousMovement());
+      // cell.AddBiologyModule(CancerCellBiologyModule());
+      // cell.SetCanDivide(true);
+      // cell.SetHypoDiv(true);
+      // cell.SetIsCancerous(true);
       return cell;
     };
 
@@ -342,7 +424,7 @@ namespace bdm {
     else {
       // cell creation (min boundary, max boundary, # of cells, default initialiser for cells)
       CellCreator(Param::min_bound_+(Param::max_bound_*0.1), Param::max_bound_-(Param::max_bound_*0.1), rve.cells_population[0], Construct_Host_Cells);
-      CellCreator(45.00, 55.00, rve.cells_population[1], Construct_Cancer_Cells);
+      CellCreator(5.00, 15.00, rve.cells_population[1], Construct_Cancer_Cells);
     }
 
     auto rm = TResourceManager::Get();
@@ -376,26 +458,7 @@ namespace bdm {
   void Simulate (BDM_Domain& rve) {
 
     Scheduler<> scheduler;
-    const int max_step = 100;
-
-    // create a PVD file for Paraview to process
-    if ( false )
-    {
-      std::ofstream fpvd("cells_data.pvd");
-      fpvd.setf(std::ios_base::scientific|std::ios_base::unitbuf);
-      //
-      fpvd << "<?xml version=\"1.0\"?>" << std::endl;
-      fpvd << "<VTKFile type=\"Collection\" version=\"0.1\" byte_order=\"LittleEndian\">" << std::endl;
-      fpvd << "<Collection>" << std::endl;
-      for (int i=0; i<=max_step; i++) {
-        const double t = (i+0.0)/max_step;
-        if ( 0 == i || max_step == i || i%Param::visualization_export_interval_ == 0 ) {
-          fpvd << "<DataSet timestep=\"" << t << "\" group=\"\" part=\"0\" file=\"cells_data_" << i << ".pvtu\"/>" << std::endl;
-        }
-      }
-      fpvd << "</Collection>" << std::endl;
-      fpvd << "</VTKFile>" << std::endl;
-    }
+    const int max_step = 81;
 
     // iterate for all time-steps
     auto rm = TResourceManager::Get();
@@ -411,30 +474,30 @@ namespace bdm {
       //
       scheduler.Simulate(1);
       //
-      all_cells = rm->template Get<MyCell>();
-      for (unsigned int i=0; i<all_cells->size(); i++) {
-        auto thisCell = (*all_cells)[i];
-        array<double, 3> thisPosition = thisCell.GetPosition();
-        if (thisPosition[0]<=low_bound) {
-          thisCell.RemoveFromSimulation();
-          current_escaped_cells[0] += 1;
-        } else if (thisPosition[0]>=up_bound ) {
-          thisCell.RemoveFromSimulation();
-          current_escaped_cells[1] += 1;
-        } else if (thisPosition[1]<=low_bound) {
-          thisCell.RemoveFromSimulation();
-          current_escaped_cells[2] += 1;
-        } else if (thisPosition[1]>=up_bound ) {
-          thisCell.RemoveFromSimulation();
-          current_escaped_cells[3] += 1;
-        } else if (thisPosition[2]<=low_bound) {
-          thisCell.RemoveFromSimulation();
-          current_escaped_cells[4] += 1;
-        } else if (thisPosition[2]>=up_bound ) {
-          thisCell.RemoveFromSimulation();
-          current_escaped_cells[5] += 1;
-        }
-      }
+      // all_cells = rm->template Get<MyCell>();
+      // for (unsigned int i=0; i<all_cells->size(); i++) {
+      //   auto thisCell = (*all_cells)[i];
+      //   array<double, 3> thisPosition = thisCell.GetPosition();
+      //   if (thisPosition[0]<=low_bound) {
+      //     thisCell.RemoveFromSimulation();
+      //     current_escaped_cells[0] += 1;
+      //   } else if (thisPosition[0]>=up_bound ) {
+      //     thisCell.RemoveFromSimulation();
+      //     current_escaped_cells[1] += 1;
+      //   } else if (thisPosition[1]<=low_bound) {
+      //     thisCell.RemoveFromSimulation();
+      //     current_escaped_cells[2] += 1;
+      //   } else if (thisPosition[1]>=up_bound ) {
+      //     thisCell.RemoveFromSimulation();
+      //     current_escaped_cells[3] += 1;
+      //   } else if (thisPosition[2]<=low_bound) {
+      //     thisCell.RemoveFromSimulation();
+      //     current_escaped_cells[4] += 1;
+      //   } else if (thisPosition[2]>=up_bound ) {
+      //     thisCell.RemoveFromSimulation();
+      //     current_escaped_cells[5] += 1;
+      //   }
+      // }
 
       for (int k=0; k<6; k++) {
         rve.escaped_cells[k] = current_escaped_cells[k];
@@ -489,8 +552,6 @@ namespace bdm {
     outputFile.close();
 
   } // end simulate
-
-
 
 } // namespace bdm
 
