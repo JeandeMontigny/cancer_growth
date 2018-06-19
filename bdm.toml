@@ -1,5 +1,5 @@
 [visualization]
-export = true
+export = false
 export_interval = 1
 
     [[visualize_sim_object]]
